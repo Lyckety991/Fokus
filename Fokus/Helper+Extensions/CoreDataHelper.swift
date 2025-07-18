@@ -17,11 +17,13 @@ extension FocusItemModel {
         } ?? []
         
         return FocusItemModel(
+            id: entity.id ?? UUID(),
             title: entity.title ?? "",
             description: entity.desc ?? "",
             weakness: entity.weakness ?? "",
             todos: todos,
-            completionDates: entity.lastCompletionDate?.isToday ?? false ? [Date()] : []
+            completionDates: (entity.completionDates as? [Date]) ?? []
+
         )
     }
 
@@ -30,7 +32,7 @@ extension FocusItemModel {
         entity.title = self.title
         entity.desc = self.description
         entity.weakness = self.weakness
-        entity.lastCompletionDate = self.lastCompletionDate
+        entity.completionDates = self.completionDates as NSArray
 
         // Alle alten Todos löschen, bevor neue gesetzt werden
         if let oldTodos = entity.todos as? Set<FocusToDo> {

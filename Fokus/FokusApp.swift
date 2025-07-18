@@ -9,9 +9,16 @@ import SwiftUI
 
 @main
 struct FokusApp: App {
+    
+    @StateObject var store = FocusStore()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    _ = await NotificationManager.shared.requestAuthorization()
+                }
         }
     }
 }
+

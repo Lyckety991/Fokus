@@ -4,7 +4,9 @@
         <attribute name="completionDates" optional="YES" attributeType="Transformable" customClassName="NSArray"/>
         <attribute name="desc" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="lastCompletionDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="notificationID" optional="YES" attributeType="String"/>
+        <attribute name="reminderDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="repeatsDaily" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="weakness" optional="YES" attributeType="String"/>
         <relationship name="todos" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FocusToDo" inverseName="focusItem" inverseEntity="FocusToDo"/>

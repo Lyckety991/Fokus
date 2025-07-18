@@ -7,6 +7,8 @@
 
 import Foundation
 import CoreData
+import NotificationCenter
+import UserNotifications
 
 class FocusStore: ObservableObject {
     private let context = DataController.shared.context
@@ -16,22 +18,20 @@ class FocusStore: ObservableObject {
     
     init() {
         loadAllData()
+       
     }
     
     func loadAllData() {
         loadFocusItems()
         loadUserProgress()
     }
-    
-    // MARK: - CRUD: Focus hinzufügen
+   
     func addFocus(_ focus: FocusItemModel) {
         let entity = FocusItem(context: context)
         entity.id = focus.id
         entity.title = focus.title
         entity.desc = focus.description
         entity.weakness = focus.weakness
-        
-        // CompletionDates als transformierbares Attribut speichern
         entity.completionDates = NSArray(array: focus.completionDates)
         
         for todo in focus.todos {
@@ -46,7 +46,6 @@ class FocusStore: ObservableObject {
         focusItems.append(focus)
     }
     
-    // MARK: - Focus aktualisieren
     func updateFocus(_ focus: FocusItemModel) {
         let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", focus.id as CVarArg)
@@ -56,8 +55,6 @@ class FocusStore: ObservableObject {
                 entity.title = focus.title
                 entity.desc = focus.description
                 entity.weakness = focus.weakness
-                
-                // CompletionDates aktualisieren
                 entity.completionDates = NSArray(array: focus.completionDates)
                 
                 if let existingTodos = entity.todos as? Set<FocusToDo> {
@@ -85,45 +82,47 @@ class FocusStore: ObservableObject {
         }
     }
     
-    // MARK: - Focus als abgeschlossen markieren
     func completeFocus(_ focusId: UUID) {
         guard let focusIndex = focusItems.firstIndex(where: { $0.id == focusId }) else { return }
         
         let currentDate = Date()
         var updatedFocus = focusItems[focusIndex]
         
-        // Füge das aktuelle Datum hinzu, wenn noch nicht vorhanden
-        if !updatedFocus.completionDates.contains(where: { Calendar.current.isDate($0, inSameDayAs: currentDate) }) {
-            updatedFocus.completionDates.append(currentDate)
+        // Überprüfen, ob heute bereits abgeschlossen wurde
+        let todayCompleted = updatedFocus.completionDates.contains {
+            Calendar.current.isDateInToday($0)
         }
         
-        // CoreData aktualisieren
-        let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", focusId as CVarArg)
-        
-        do {
-            if let entity = try context.fetch(request).first {
-                // Konvertiere NSArray zu [Date] und füge neues Datum hinzu
-                var dates = (entity.completionDates as? [Date]) ?? []
-                
-                if !dates.contains(where: { Calendar.current.isDate($0, inSameDayAs: currentDate) }) {
-                    dates.append(currentDate)
-                    entity.completionDates = NSArray(array: dates)
+        if !todayCompleted {
+            // Neues Abschlussdatum hinzufügen
+            updatedFocus.completionDates.append(currentDate)
+            
+            // CoreData aktualisieren
+            let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", focusId as CVarArg)
+            
+            do {
+                if let entity = try context.fetch(request).first {
+                    var dates = (entity.completionDates as? [Date]) ?? []
+                    // Nur hinzufügen, wenn nicht vorhanden
+                    if !dates.contains(where: { Calendar.current.isDateInToday($0) }) {
+                        dates.append(currentDate)
+                        entity.completionDates = NSArray(array: dates)
+                        saveContext()
+                    }
                 }
-                
-                saveContext()
+            } catch {
+                print("❌ Abschluss fehlgeschlagen: \(error)")
             }
-        } catch {
-            print("❌ Abschluss fehlgeschlagen: \(error)")
+            
+            addXP(amount: 25)
         }
         
         // Lokale Daten aktualisieren
         focusItems[focusIndex] = updatedFocus
-        addXP(amount: 25)
         resetTodos(for: focusId)
     }
     
-    // MARK: - Focus-Daten laden
     private func loadFocusItems() {
         let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
         
@@ -138,7 +137,6 @@ class FocusStore: ObservableObject {
                     )
                 } ?? []
                 
-                // Konvertiere NSArray zu [Date] für completionDates
                 let completionDates = (entity.completionDates as? [Date]) ?? []
                 
                 return FocusItemModel(
@@ -155,7 +153,6 @@ class FocusStore: ObservableObject {
         }
     }
     
-    // MARK: - Fortschritt laden
     private func loadUserProgress() {
         let request: NSFetchRequest<UserProgress> = UserProgress.fetchRequest()
         
@@ -170,7 +167,6 @@ class FocusStore: ObservableObject {
         }
     }
     
-    // MARK: - Initialer Fortschritt
     private func createInitialUserProgress() {
         let entity = UserProgress(context: context)
         entity.totalXP = 0
@@ -178,7 +174,6 @@ class FocusStore: ObservableObject {
         userProgress = UserProgressModel(totalXP: 0)
     }
     
-    // MARK: - XP hinzufügen
     private func addXP(amount: Int) {
         let request: NSFetchRequest<UserProgress> = UserProgress.fetchRequest()
         
@@ -186,9 +181,11 @@ class FocusStore: ObservableObject {
             if let entity = try context.fetch(request).first {
                 entity.totalXP += Int64(amount)
                 saveContext()
+                // Update des Published Properties hinzugefügt
                 userProgress = UserProgressModel(totalXP: Int(entity.totalXP))
             } else {
                 createInitialUserProgress()
+                // Rekursiv mit aktualisiertem Zustand aufrufen
                 addXP(amount: amount)
             }
         } catch {
@@ -211,7 +208,9 @@ class FocusStore: ObservableObject {
         }
     }
     
-    // MARK: - Todos zurücksetzen
+   
+
+    
     private func resetTodos(for focusId: UUID) {
         let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", focusId as CVarArg)
@@ -235,8 +234,15 @@ class FocusStore: ObservableObject {
         }
     }
     
-    // MARK: - Speichern
     private func saveContext() {
         DataController.shared.saveContext()
+    }
+}
+
+extension FocusStore {
+    func updateNotificationSettings(for id: UUID, notificationID: String, repeatsDaily: Bool) {
+        guard let index = focusItems.firstIndex(where: { $0.id == id }) else { return }
+        focusItems[index].notificationID = notificationID
+        focusItems[index].repeatsDaily = repeatsDaily
     }
 }

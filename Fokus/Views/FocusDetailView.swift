@@ -85,6 +85,8 @@ struct FocusDetailView: View {
                 if !focus.todos.isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
+                            Image(systemName: "target")
+                                .foregroundColor(Palette.accent)
                             Text("Ziele")
                                 .titleStyle()
                             
@@ -152,8 +154,11 @@ struct FocusDetailView: View {
             Text("Bist du sicher, dass du '\(focus.title)' löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.")
         }
         .onChange(of: focus.todos) { _ in
-            store.updateFocus(focus)
-        }
+               store.updateFocus(focus)
+           }
+           .onChange(of: focus.completionDates) { _ in
+               store.updateFocus(focus)
+           }
     }
     
     // MARK: - Subviews
@@ -343,7 +348,7 @@ struct FocusDetailView: View {
     private func completeFocus() {
         // XP-Belohnung berechnen
         let baseXP = 25
-        let bonusXP = focus.todos.count * 5  // 5 XP pro Todo
+        let bonusXP = focus.todos.count * 5
         xpEarned = baseXP + bonusXP
         
         // Animation zeigen
@@ -351,17 +356,11 @@ struct FocusDetailView: View {
             showCompletionAnimation = true
         }
         
-        // Fokus abschließen
-        focus.completionDates = [Date()]
+        // Fokus abschließen (durch den Store)
         store.completeFocus(focus.id)
         
-        // Todos zurücksetzen (falls vorhanden)
-        for i in 0..<focus.todos.count {
-            focus.todos[i].isCompleted = false
-        }
-        
-        // Update speichern
-        store.updateFocus(focus)
+        // Nicht die Todos hier zurücksetzen - das macht der Store
+        // Nicht updateFocus aufrufen - das macht der Store
     }
 }
 // MARK: - Preview

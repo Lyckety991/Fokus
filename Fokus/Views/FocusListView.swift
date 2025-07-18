@@ -6,11 +6,16 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
+
+
 
 struct FocusListView: View {
     @StateObject private var store = FocusStore()
     @State private var showAddView = false
     @State private var showingStatistics = false
+    @State private var exportFile: URL?
+    @State private var showingExporter = false
     
     private var globalStats: GlobalStatistics {
            StatisticsHelper.calculateGlobalStatistics(
@@ -38,7 +43,7 @@ struct FocusListView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
                             .foregroundColor(Palette.accent)
-                        Text("Fokus hinzufügen")
+                        Text("Add")
                             .foregroundStyle(Palette.accent)
                             .bold()
                     }
@@ -87,8 +92,21 @@ struct FocusListView: View {
                                 showingStatistics = true
                             }
         .sheet(isPresented: $showingStatistics) {
-            GlobalStatisticsView(statistics: globalStats)
+            GlobalStatisticsView(statistics: globalStats, store: FocusStore())
         }
+        .fileExporter(
+                        isPresented: $showingExporter,
+                        document: CSVFile(initialText: ""),
+                        contentType: .commaSeparatedText,
+                        defaultFilename: "focus_export.csv"
+                    ) { result in
+                        switch result {
+                        case .success(let url):
+                            print("Export erfolgreich: \(url)")
+                        case .failure(let error):
+                            print("Export fehlgeschlagen: \(error)")
+                        }
+                    }
     }
         
     
@@ -129,6 +147,30 @@ struct FocusListView: View {
                 }
             }
         }
+    }
+}
+
+
+struct CSVFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText] }
+    
+    var text: String
+    
+    init(initialText: String = "") {
+        text = initialText
+    }
+    
+    init(configuration: ReadConfiguration) throws {
+        if let data = configuration.file.regularFileContents {
+            text = String(decoding: data, as: UTF8.self)
+        } else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let data = Data(text.utf8)
+        return FileWrapper(regularFileWithContents: data)
     }
 }
 
