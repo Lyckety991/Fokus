@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E888419B2E2B84C300352117 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = E888419A2E2B84C300352117 /* RevenueCat */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		E890BD902E1BEDD1007FC040 /* Fokus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fokus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,16 +40,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E888419B2E2B84C300352117 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E88841992E2B84C300352117 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		E890BD872E1BEDD1007FC040 = {
 			isa = PBXGroup;
 			children = (
 				E890BD922E1BEDD1007FC040 /* Fokus */,
+				E88841992E2B84C300352117 /* Frameworks */,
 				E890BD912E1BEDD1007FC040 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -78,6 +91,7 @@
 			);
 			name = Fokus;
 			packageProductDependencies = (
+				E888419A2E2B84C300352117 /* RevenueCat */,
 			);
 			productName = Fokus;
 			productReference = E890BD902E1BEDD1007FC040 /* Fokus.app */;
@@ -107,6 +121,9 @@
 			);
 			mainGroup = E890BD872E1BEDD1007FC040;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E88841982E2B842C00352117 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E890BD912E1BEDD1007FC040 /* Products */;
 			projectDirPath = "";
@@ -349,6 +366,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E88841982E2B842C00352117 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.33.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E888419A2E2B84C300352117 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E88841982E2B842C00352117 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E890BD882E1BEDD1007FC040 /* Project object */;
 }

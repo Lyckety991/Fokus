@@ -91,4 +91,7 @@ struct Achievement: Identifiable {
     let icon: String
     let progress: Double
     let isUnlocked: Bool
+    let goalValue: Int
+    let currentValue: Int
 }
+

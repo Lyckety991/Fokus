@@ -7,18 +7,20 @@
 
 import SwiftUI
 
-
-
 struct EditFocusView: View {
     @Binding var focus: FocusItemModel
     @ObservedObject var store: FocusStore
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var title: String
     @State private var description: String
     @State private var weakness: String
     @State private var todos: [FocusTodoModel]
-    
+
+    @State private var enableReminder: Bool
+    @State private var reminderDate: Date
+    @State private var repeatsDaily: Bool
+
     init(focus: Binding<FocusItemModel>, store: FocusStore) {
         self._focus = focus
         self.store = store
@@ -26,82 +28,109 @@ struct EditFocusView: View {
         self._description = State(initialValue: focus.wrappedValue.description)
         self._weakness = State(initialValue: focus.wrappedValue.weakness)
         self._todos = State(initialValue: focus.wrappedValue.todos)
+        self._enableReminder = State(initialValue: focus.wrappedValue.reminderDate != nil)
+        self._reminderDate = State(initialValue: focus.wrappedValue.reminderDate ?? Date())
+        self._repeatsDaily = State(initialValue: focus.wrappedValue.repeatsDaily)
     }
-    
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text("Fokus Details").headlineStyle()) {
-                    TextField("Titel", text: $title)
-                        .titleStyle()
-                    
-                    VStack(alignment: .leading) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Titel")
+                            .headlineStyle()
+                        TextField("Titel eingeben", text: $title)
+                            .padding()
+                            .background(Palette.card)
+                            .cornerRadius(12)
+                            .foregroundColor(Palette.textPrimary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Beschreibung")
-                            .bodyTextStyle()
+                            .headlineStyle()
                         TextEditor(text: $description)
-                            .frame(minHeight: 100)
+                            .frame(height: 100)
+                            .padding(8)
+                            .scrollContentBackground(.hidden)
                             .background(Palette.card)
-                            .cornerRadius(8)
+                            .cornerRadius(12)
                             .foregroundColor(Palette.textPrimary)
                     }
-                    .padding(.vertical, 4)
-                    
-                    VStack(alignment: .leading) {
+
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Schwächen")
-                            .bodyTextStyle()
+                            .headlineStyle()
                         TextEditor(text: $weakness)
-                            .frame(minHeight: 100)
+                            .frame(height: 100)
+                            .padding(8)
+                            .scrollContentBackground(.hidden)
                             .background(Palette.card)
-                            .cornerRadius(8)
+                            .cornerRadius(12)
                             .foregroundColor(Palette.textPrimary)
                     }
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(Palette.background)
-                
-                Section(header: Text("Todos").headlineStyle()) {
-                    ForEach($todos) { $todo in
-                        HStack {
-                            Button {
-                                todo.isCompleted.toggle()
-                            } label: {
-                                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Ziele")
+                            .headlineStyle()
+
+                        Button {
+                            addTodo()
+                        } label: {
+                            Label("Ziel hinzufügen", systemImage: "plus.circle.fill")
+                                .foregroundColor(Palette.accent)
+                        }
+
+                        ForEach($todos) { $todo in
+                            HStack {
+                                Image(systemName: "circle")
                                     .foregroundColor(todo.isCompleted ? Palette.completed : Palette.textSecondary)
+                                TextField("Todo", text: $todo.title)
+                                    .padding(8)
+                                    .background(Palette.background)
+                                    .cornerRadius(8)
                             }
-                            
-                            TextField("Todo-Beschreibung", text: $todo.title)
-                                .bodyTextStyle()
                         }
-                        .padding(8)
-                        .background(Palette.card.opacity(0.5))
-                        .cornerRadius(8)
+                        .onDelete(perform: deleteTodo)
                     }
-                    .onDelete(perform: deleteTodo)
-                    .listRowBackground(Palette.background)
-                    
-                    Button(action: addTodo) {
-                        Label("Neues Todo hinzufügen", systemImage: "plus.circle.fill")
-                            .foregroundColor(Palette.accent)
+                    .padding()
+                    .background(Palette.card)
+                    .cornerRadius(16)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Erinnerung aktivieren", isOn: $enableReminder)
+                            .toggleStyle(SwitchToggleStyle(tint: Palette.accent))
+
+                        if enableReminder {
+                            VStack(alignment: .leading, spacing: 8) {
+                                DatePicker("Uhrzeit", selection: $reminderDate, displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.compact)
+
+                                Toggle("Täglich wiederholen", isOn: $repeatsDaily)
+                                    .toggleStyle(SwitchToggleStyle(tint: Palette.accent))
+                            }
+                            .padding()
+                            .background(Palette.card.opacity(0.7))
+                            .cornerRadius(12)
+                        }
                     }
-                    .listRowBackground(Palette.background)
-                }
-                
-                Section {
+                    .padding()
+                    .background(Palette.card)
+                    .cornerRadius(16)
+
                     Button(action: saveChanges) {
-                        HStack {
-                            Spacer()
-                            Text("Änderungen speichern")
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
-                        .padding()
-                        .background(title.isEmpty ? Palette.textSecondary : Palette.accent)
-                        .cornerRadius(16)
+                        Text("Änderungen speichern")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(title.isEmpty ? Palette.textSecondary : Palette.accent)
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
+                            .font(.headline)
                     }
                     .disabled(title.isEmpty)
-                    .listRowBackground(Palette.background)
                 }
+                .padding()
             }
             .background(Palette.background)
             .navigationTitle("Fokus bearbeiten")
@@ -111,43 +140,69 @@ struct EditFocusView: View {
                     Button("Abbrechen") { dismiss() }
                         .foregroundColor(Palette.accent)
                 }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
-                        saveChanges()
-                        dismiss()
-                    }
-                    .disabled(title.isEmpty)
-                    .foregroundColor(Palette.accent)
-                }
             }
         }
     }
-    
+
     private func addTodo() {
         withAnimation {
             todos.append(FocusTodoModel(title: ""))
         }
     }
-    
+
     private func deleteTodo(at offsets: IndexSet) {
         withAnimation {
             todos.remove(atOffsets: offsets)
         }
     }
-    
+
     private func saveChanges() {
-        let updatedFocus = FocusItemModel(
+        var updatedFocus = FocusItemModel(
+            id: focus.id,
             title: title,
             description: description,
             weakness: weakness,
             todos: todos.filter { !$0.title.isEmpty },
-            completionDates: focus.completionDates
+            completionDates: focus.completionDates,
+            reminderDate: enableReminder ? reminderDate : nil,
+            notificationID: focus.notificationID,
+            repeatsDaily: enableReminder ? repeatsDaily : false
         )
+
         focus = updatedFocus
         store.updateFocus(updatedFocus)
+
+        Task {
+            if enableReminder {
+                let id = try? await NotificationManager.shared.scheduleNotification(
+                    title: "Focus Reminder",
+                    body: title,
+                    at: reminderDate,
+                    repeatsDaily: repeatsDaily
+                )
+
+                updatedFocus.notificationID = id
+                store.updateNotificationSettings(
+                    for: updatedFocus.id,
+                    notificationID: id ?? "",
+                    repeatsDaily: repeatsDaily
+                )
+            } else if let notificationID = updatedFocus.notificationID {
+                await NotificationManager.shared.cancelNotification(withID: notificationID)
+                updatedFocus.notificationID = nil
+                updatedFocus.reminderDate = nil
+                store.updateNotificationSettings(
+                    for: updatedFocus.id,
+                    notificationID: nil,
+                    repeatsDaily: false
+                )
+            }
+        }
+
+        dismiss()
     }
 }
+
 // MARK: - Preview
 struct EditFocusView_Previews: PreviewProvider {
     struct PreviewWrapper: View {

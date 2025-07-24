@@ -11,6 +11,9 @@ struct AddFocusView: View {
     @ObservedObject var store: FocusStore
     @Environment(\.dismiss) private var dismiss
 
+    // Für Edit-Mode: Optional existierendes Focus Item
+    var existingFocus: FocusItemModel?
+
     @State private var title = ""
     @State private var description = ""
     @State private var weakness = ""
@@ -34,7 +37,7 @@ struct AddFocusView: View {
                 .padding()
             }
             .background(Palette.background)
-            .navigationTitle("Neuer Fokus")
+            .navigationTitle(existingFocus != nil ? "Fokus bearbeiten" : "Neuer Fokus")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -43,6 +46,9 @@ struct AddFocusView: View {
                     }
                     .foregroundColor(Palette.accent)
                 }
+            }
+            .onAppear {
+                loadExistingData()
             }
         }
     }
@@ -66,6 +72,7 @@ struct AddFocusView: View {
             TextEditor(text: $description)
                 .frame(height: 100)
                 .padding(8)
+                .scrollContentBackground(.hidden)
                 .background(Palette.card)
                 .cornerRadius(12)
                 .foregroundColor(Palette.textPrimary)
@@ -78,6 +85,7 @@ struct AddFocusView: View {
             TextEditor(text: $weakness)
                 .frame(height: 100)
                 .padding(8)
+                .scrollContentBackground(.hidden)
                 .background(Palette.card)
                 .cornerRadius(12)
                 .foregroundColor(Palette.textPrimary)
@@ -153,6 +161,25 @@ struct AddFocusView: View {
         .disabled(title.isEmpty)
     }
 
+    // MARK: - Daten laden
+
+    private func loadExistingData() {
+        guard let focus = existingFocus else { return }
+        
+        title = focus.title
+        description = focus.description
+        weakness = focus.weakness
+        todos = focus.todos.isEmpty ? [FocusTodoModel(title: "")] : focus.todos
+        
+        // Toggle-Zustände aus den gespeicherten Daten wiederherstellen
+        enableReminder = focus.reminderDate != nil
+        repeatsDaily = focus.repeatsDaily
+        
+        if let savedReminderDate = focus.reminderDate {
+            reminderDate = savedReminderDate
+        }
+    }
+
     // MARK: - Aktionen
 
     private func addTodo() {
@@ -168,30 +195,49 @@ struct AddFocusView: View {
     }
 
     private func saveFocus() {
-        var newFocus = FocusItemModel(
+        let focusToSave = FocusItemModel(
+            id: existingFocus?.id ?? UUID(), // Bestehende ID verwenden oder neue erstellen
             title: title,
             description: description,
             weakness: weakness,
             todos: todos.filter { !$0.title.isEmpty },
-            completionDates: [],
+            completionDates: existingFocus?.completionDates ?? [],
             reminderDate: enableReminder ? reminderDate : nil,
-            notificationID: nil,
+            notificationID: existingFocus?.notificationID,
             repeatsDaily: enableReminder ? repeatsDaily : false
         )
 
-        store.addFocus(newFocus)
+        if existingFocus != nil {
+            // Update existing focus
+            store.updateFocus(focusToSave)
+        } else {
+            // Add new focus
+            store.addFocus(focusToSave)
+        }
 
         if enableReminder {
             Task {
-                let id = await scheduleNotification(for: newFocus)
+                let id = await scheduleNotification(for: focusToSave)
                 // Nachträglich ID setzen
                 if let id = id {
                     store.updateNotificationSettings(
-                        for: newFocus.id,
+                        for: focusToSave.id,
                         notificationID: id,
                         repeatsDaily: repeatsDaily
                     )
                 }
+            }
+        } else {
+            // Wenn Reminder deaktiviert wurde, bestehende Benachrichtigung löschen
+            if let notificationID = focusToSave.notificationID {
+                Task {
+                    await NotificationManager.shared.cancelNotification(withID: notificationID)
+                }
+                store.updateNotificationSettings(
+                    for: focusToSave.id,
+                    notificationID: nil,
+                    repeatsDaily: false
+                )
             }
         }
 
@@ -206,7 +252,7 @@ struct AddFocusView: View {
                 title: "Fokus Erinnerung",
                 body: focus.title,
                 at: reminderDate,
-                repeatsDaily: focus.repeatsDaily ?? false
+                repeatsDaily: focus.repeatsDaily
             )
             return id
         } catch {

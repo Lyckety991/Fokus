@@ -18,7 +18,6 @@ class FocusStore: ObservableObject {
     
     init() {
         loadAllData()
-       
     }
     
     func loadAllData() {
@@ -33,6 +32,11 @@ class FocusStore: ObservableObject {
         entity.desc = focus.description
         entity.weakness = focus.weakness
         entity.completionDates = NSArray(array: focus.completionDates)
+        
+        // Notification-Properties hinzufügen
+        entity.reminderDate = focus.reminderDate
+        entity.notificationID = focus.notificationID
+        entity.repeatsDaily = focus.repeatsDaily
         
         for todo in focus.todos {
             let todoEntity = FocusToDo(context: context)
@@ -56,6 +60,11 @@ class FocusStore: ObservableObject {
                 entity.desc = focus.description
                 entity.weakness = focus.weakness
                 entity.completionDates = NSArray(array: focus.completionDates)
+                
+                // Notification-Properties aktualisieren
+                entity.reminderDate = focus.reminderDate
+                entity.notificationID = focus.notificationID
+                entity.repeatsDaily = focus.repeatsDaily
                 
                 if let existingTodos = entity.todos as? Set<FocusToDo> {
                     for todo in existingTodos {
@@ -145,7 +154,10 @@ class FocusStore: ObservableObject {
                     description: entity.desc ?? "",
                     weakness: entity.weakness ?? "",
                     todos: todos,
-                    completionDates: completionDates
+                    completionDates: completionDates,
+                    reminderDate: entity.reminderDate,
+                    notificationID: entity.notificationID,
+                    repeatsDaily: entity.repeatsDaily
                 )
             }
         } catch {
@@ -199,6 +211,13 @@ class FocusStore: ObservableObject {
 
         do {
             if let entity = try context.fetch(request).first {
+                // Benachrichtigung löschen, falls vorhanden
+                if let notificationID = focus.notificationID {
+                    Task {
+                        await NotificationManager.shared.cancelNotification(withID: notificationID)
+                    }
+                }
+                
                 context.delete(entity)
                 saveContext()
                 focusItems.removeAll { $0.id == focus.id }
@@ -207,9 +226,6 @@ class FocusStore: ObservableObject {
             print("❌ Fehler beim Löschen des Fokus: \(error)")
         }
     }
-    
-   
-
     
     private func resetTodos(for focusId: UUID) {
         let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
@@ -240,9 +256,34 @@ class FocusStore: ObservableObject {
 }
 
 extension FocusStore {
-    func updateNotificationSettings(for id: UUID, notificationID: String, repeatsDaily: Bool) {
-        guard let index = focusItems.firstIndex(where: { $0.id == id }) else { return }
-        focusItems[index].notificationID = notificationID
-        focusItems[index].repeatsDaily = repeatsDaily
+    func updateNotificationSettings(for id: UUID, notificationID: String?, repeatsDaily: Bool) {
+        // Lokale Daten aktualisieren
+        if let index = focusItems.firstIndex(where: { $0.id == id }) {
+            focusItems[index] = FocusItemModel(
+                id: focusItems[index].id,
+                title: focusItems[index].title,
+                description: focusItems[index].description,
+                weakness: focusItems[index].weakness,
+                todos: focusItems[index].todos,
+                completionDates: focusItems[index].completionDates,
+                reminderDate: focusItems[index].reminderDate,
+                notificationID: notificationID,
+                repeatsDaily: repeatsDaily
+            )
+        }
+        
+        // CoreData aktualisieren
+        let request: NSFetchRequest<FocusItem> = FocusItem.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        
+        do {
+            if let entity = try context.fetch(request).first {
+                entity.notificationID = notificationID
+                entity.repeatsDaily = repeatsDaily
+                saveContext()
+            }
+        } catch {
+            print("❌ Notification-Update fehlgeschlagen: \(error)")
+        }
     }
 }

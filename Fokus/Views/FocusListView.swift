@@ -11,6 +11,9 @@ import UniformTypeIdentifiers
 
 
 struct FocusListView: View {
+    
+    @EnvironmentObject var revenueCat: RevenueCatManager
+    
     @StateObject private var store = FocusStore()
     @State private var showAddView = false
     @State private var showingStatistics = false
@@ -93,6 +96,7 @@ struct FocusListView: View {
                             }
         .sheet(isPresented: $showingStatistics) {
             GlobalStatisticsView(statistics: globalStats, store: FocusStore())
+                .environmentObject(revenueCat)
         }
         .fileExporter(
                         isPresented: $showingExporter,
@@ -113,7 +117,7 @@ struct FocusListView: View {
     private var focusListSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Meine Fokuse")
+                Text("Deine Ziele")
                     .titleStyle()
                 
                 Spacer()
@@ -253,5 +257,8 @@ private struct EmptyStateView: View {
 
 #Preview {
     FocusListView()
-        .preferredColorScheme(.dark) // Test für Dark Mode
+   
+        .preferredColorScheme(.dark)
+        .environmentObject(RevenueCatManager())
+        // Test für Dark Mode
 }

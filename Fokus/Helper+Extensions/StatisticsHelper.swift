@@ -109,84 +109,106 @@ class StatisticsHelper {
         totalCompletions: Int,
         focusCount: Int
     ) -> [Achievement] {
-        var achievements: [Achievement] = []
         
-        // XP Achievements
-        achievements.append(Achievement(
-            title: "Neuling",
-            description: "Erreiche 100 XP",
-            icon: "star.fill",
-            progress: min(Double(totalXP) / 100, 1.0),
-            isUnlocked: totalXP >= 100
-        ))
-        
-        achievements.append(Achievement(
-            title: "Erfahren",
-            description: "Erreiche 500 XP",
-            icon: "star.circle.fill",
-            progress: min(Double(totalXP) / 500, 1.0),
-            isUnlocked: totalXP >= 500
-        ))
-        
-        achievements.append(Achievement(
-            title: "Meister",
-            description: "Erreiche 1000 XP",
-            icon: "rosette",
-            progress: min(Double(totalXP) / 1000, 1.0),
-            isUnlocked: totalXP >= 1000
-        ))
-        
-        // Streak Achievements
-        achievements.append(Achievement(
-            title: "Durchstarter",
-            description: "3-Tage-Serie",
-            icon: "flame",
-            progress: min(Double(streak) / 3, 1.0),
-            isUnlocked: streak >= 3
-        ))
-        
-        achievements.append(Achievement(
-            title: "Konsequent",
-            description: "7-Tage-Serie",
-            icon: "flame.fill",
-            progress: min(Double(streak) / 7, 1.0),
-            isUnlocked: streak >= 7
-        ))
-        
-        achievements.append(Achievement(
-            title: "Unaufhaltsam",
-            description: "30-Tage-Serie",
-            icon: "bolt.fill",
-            progress: min(Double(streak) / 30, 1.0),
-            isUnlocked: streak >= 30
-        ))
-        
-        // Completion Achievements
-        achievements.append(Achievement(
-            title: "Erster Schritt",
-            description: "10 Abschlüsse",
-            icon: "checkmark.circle",
-            progress: min(Double(totalCompletions) / 10, 1.0),
-            isUnlocked: totalCompletions >= 10
-        ))
-        
-        achievements.append(Achievement(
-            title: "Vollprofi",
-            description: "50 Abschlüsse",
-            icon: "checkmark.circle.fill",
-            progress: min(Double(totalCompletions) / 50, 1.0),
-            isUnlocked: totalCompletions >= 50
-        ))
-        
-        // Focus Achievements
-        achievements.append(Achievement(
-            title: "Multitasker",
-            description: "5 aktive Fokusse",
-            icon: "square.grid.2x2.fill",
-            progress: min(Double(focusCount) / 5, 1.0),
-            isUnlocked: focusCount >= 5
-        ))
-        
-        return achievements
+        return [
+            // XP-Ziele
+            Achievement(
+                title: "Neuling",
+                description: "Erreiche 100 XP",
+                icon: "star.fill",
+                progress: min(Double(totalXP) / 100.0, 1.0),
+                isUnlocked: totalXP >= 100,
+                goalValue: 100,
+                currentValue: totalXP
+            ),
+            Achievement(
+                title: "Erfahren",
+                description: "Erreiche 750 XP",
+                icon: "star.circle.fill",
+                progress: min(Double(totalXP) / 750.0, 1.0),
+                isUnlocked: totalXP >= 750,
+                goalValue: 750,
+                currentValue: totalXP
+            ),
+            Achievement(
+                title: "Meister",
+                description: "Erreiche 1500 XP",
+                icon: "rosette",
+                progress: min(Double(totalXP) / 1500.0, 1.0),
+                isUnlocked: totalXP >= 1500,
+                goalValue: 1500,
+                currentValue: totalXP
+            ),
+            
+            // Streak-Ziele
+            Achievement(
+                title: "Durchstarter",
+                description: "3-Tage-Serie",
+                icon: "flame",
+                progress: min(Double(streak) / 3.0, 1.0),
+                isUnlocked: streak >= 3,
+                goalValue: 3,
+                currentValue: streak
+            ),
+            Achievement(
+                title: "Konsequent",
+                description: "10-Tage-Serie",
+                icon: "flame.fill",
+                progress: min(Double(streak) / 10.0, 1.0),
+                isUnlocked: streak >= 10,
+                goalValue: 10,
+                currentValue: streak
+            ),
+            Achievement(
+                title: "Unaufhaltsam",
+                description: "30-Tage-Serie",
+                icon: "bolt.fill",
+                progress: min(Double(streak) / 30.0, 1.0),
+                isUnlocked: streak >= 30,
+                goalValue: 30,
+                currentValue: streak
+            ),
+            
+            // Abschlüsse
+            Achievement(
+                title: "Erster Schritt",
+                description: "15 Abschlüsse",
+                icon: "checkmark.circle",
+                progress: min(Double(totalCompletions) / 15.0, 1.0),
+                isUnlocked: totalCompletions >= 15,
+                goalValue: 15,
+                currentValue: totalCompletions
+            ),
+            Achievement(
+                title: "Vollprofi",
+                description: "75 Abschlüsse",
+                icon: "checkmark.circle.fill",
+                progress: min(Double(totalCompletions) / 75.0, 1.0),
+                isUnlocked: totalCompletions >= 75,
+                goalValue: 75,
+                currentValue: totalCompletions
+            ),
+            
+            // Fokus-Ziele
+            Achievement(
+                title: "Multitasker",
+                description: "7 aktive Fokusse",
+                icon: "square.grid.2x2.fill",
+                progress: min(Double(focusCount) / 7.0, 1.0),
+                isUnlocked: focusCount >= 7,
+                goalValue: 7,
+                currentValue: focusCount
+            ),
+            Achievement(
+                title: "Fokus-Master",
+                description: "15 aktive Fokusse",
+                icon: "rectangle.3.group.fill",
+                progress: min(Double(focusCount) / 15.0, 1.0),
+                isUnlocked: focusCount >= 15,
+                goalValue: 15,
+                currentValue: focusCount
+            )
+        ]
     }
+
 }

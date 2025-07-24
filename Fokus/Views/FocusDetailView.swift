@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct FocusDetailView: View {
+    
+    @EnvironmentObject var revenueCat: RevenueCatManager
+    
+    
     @Binding var focus: FocusItemModel
     @ObservedObject var store: FocusStore
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +23,8 @@ struct FocusDetailView: View {
     @State private var isPressing = false
     @State private var showDeleteConfirmation = false
     @State private var isCompleted = false
+    
+    @State private var showPaywall = false 
     
     
     private var statistics: FocusStatistics {
@@ -37,128 +43,183 @@ struct FocusDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header mit Titel und Bearbeiten-Button
-                HStack {
-                    Text(focus.title)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(Palette.textPrimary)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Header mit Titel und Bearbeiten-Button
+                   
                     
-                    Spacer()
-                    
-                    Menu {
-                        Button(action: { showingEditView = true }) {
-                            Label("Bearbeiten", systemImage: "pencil")
+                    // Info-Karten
+                    VStack(spacing: 16) {
+                        if !focus.description.isEmpty {
+                            infoCard(title: "Beschreibung", content: focus.description, icon: "text.alignleft")
                         }
                         
-                        Button(role: .destructive) {
-                            showDeleteConfirmation = true
-                        } label: {
-                            Label("Löschen", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title2)
-                            .foregroundColor(Palette.accent)
-                    }
-                }
-                .padding(.bottom, 8)
-                
-                // Info-Karten
-                VStack(spacing: 16) {
-                    if !focus.description.isEmpty {
-                        infoCard(title: "Beschreibung", content: focus.description, icon: "text.alignleft")
-                    }
-                    
-                    if !focus.weakness.isEmpty {
-                        infoCard(title: "Schwäche", content: focus.weakness, icon: "exclamationmark.triangle", color: Palette.warning)
-                    }
-                    
-                    if let lastDate = focus.lastCompletionDate {
-                        infoCard(title: "Letzter Abschluss", content: lastDate.formatted(date: .abbreviated, time: .shortened), icon: "calendar", color: Palette.secondary)
-                    }
-                }
-                
-                // Todos
-                if !focus.todos.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundColor(Palette.accent)
-                            Text("Ziele")
-                                .titleStyle()
-                            
-                            Spacer()
-                            
-                            Text("\(focus.todos.filter { $0.isCompleted }.count)/\(focus.todos.count)")
-                                .font(.headline)
-                                .foregroundColor(focus.todos.allSatisfy { $0.isCompleted } ? Palette.completed : Palette.textPrimary)
+                        if !focus.weakness.isEmpty {
+                            infoCard(title: "Schwäche", content: focus.weakness, icon: "exclamationmark.triangle", color: Palette.warning)
                         }
                         
-                        LazyVStack(spacing: 12) {
-                            ForEach($focus.todos) { $todo in
-                                todoRow(todo: $todo)
+                        if let lastDate = focus.lastCompletionDate {
+                            infoCard(title: "Letzter Abschluss", content: lastDate.formatted(date: .abbreviated, time: .shortened), icon: "calendar", color: Palette.secondary)
+                        }
+                    }
+                    
+                    // Todos
+                    if !focus.todos.isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "target")
+                                    .foregroundColor(Palette.accent)
+                                Text("Ziele")
+                                    .titleStyle()
+                                
+                                Spacer()
+                                
+                                Text("\(focus.todos.filter { $0.isCompleted }.count)/\(focus.todos.count)")
+                                    .font(.headline)
+                                    .foregroundColor(focus.todos.allSatisfy { $0.isCompleted } ? Palette.completed : Palette.textPrimary)
+                            }
+                            
+                            LazyVStack(spacing: 12) {
+                                ForEach($focus.todos) { $todo in
+                                    todoRow(todo: $todo)
+                                }
                             }
                         }
+                        .padding()
+                        .cardStyle()
                     }
-                    .padding()
-                    .cardStyle()
-                }
-                
-                
-               
-                    FocusStatisticsView(statistics: statistics)
                     
-                
+                    if revenueCat.isPremium {
+                        FocusStatisticsView(statistics: statistics)
+                        
+                    } else {
+                        FocusStatisticsView(statistics: statistics)
+                            .blur(radius: 2.5)
+                            .overlay {
+                                ZStack {
+                                    // Blur-Effekt im Vordergrund
+                                    VisualEffectBlur(blurStyle: .systemMaterial)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                        .opacity(0.95)
+                                    
+                                    
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "lock.fill")
+                                            .font(.system(size: 30))
+                                            .foregroundColor(.white)
+                                        
+                                        Text("Statistiken nur mit Premium verfügbar")
+                                            .font(.footnote)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                        
+                                        
+                                    }
+                                    
+                                    
+                                    .multilineTextAlignment(.center)
+                                    .padding()
+                                }
                                 
-                
-                // Abschluss-Button mit Long-Press
-                VStack(spacing: 16) {
-                    if showCompletionAnimation {
-                        completionAnimationView
+                                
+                            }
+                            .onTapGesture {
+                                showPaywall = true
+                            }
+                            .sheet(isPresented: $showPaywall) {
+                                PaywallView()
+                                    .onDisappear {
+                                        // Aktualisiere UI nach Kauf
+                                        if revenueCat.isPremium {
+                                            // Optional: Animation auslösen
+                                        }
+                                    }
+                            }
                     }
                     
-                    LongPressButton(
-                        isCompletedToday: isCompletedToday,
-                        canComplete: !isCompletedToday,
-                        pressProgress: $pressProgress,
-                        action: {
-                            showCompletionAnimation = true
-                            completeFocus()
+                    
+                    
+                    
+                    
+                    
+                    
+                    // Abschluss-Button mit Long-Press
+                    VStack(spacing: 16) {
+                        if showCompletionAnimation {
+                            completionAnimationView
                         }
-                    )
-
+                        
+                        LongPressButton(
+                            isCompletedToday: isCompletedToday,
+                            canComplete: !isCompletedToday,
+                            pressProgress: $pressProgress,
+                            action: {
+                                showCompletionAnimation = true
+                                completeFocus()
+                            }
+                        )
+                        
+                    }
+                    .padding(.top)
                 }
-                .padding(.top)
+                .padding()
             }
-            .padding()
-        }
-        .background(Palette.background)
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingEditView) {
-            EditFocusView(focus: $focus, store: store)
-        }
-        .confirmationDialog(
-            "Fokus löschen",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Löschen", role: .destructive) {
-                store.deleteFocus(focus)
-                dismiss()
+            .background(Palette.background)
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingEditView) {
+                EditFocusView(focus: $focus, store: store)
             }
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text("Bist du sicher, dass du '\(focus.title)' löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.")
+            .confirmationDialog(
+                "Fokus löschen",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Löschen", role: .destructive) {
+                    store.deleteFocus(focus)
+                    dismiss()
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Bist du sicher, dass du '\(focus.title)' löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.")
+            }
+            .onChange(of: focus.todos) { _ in
+                store.updateFocus(focus)
+            }
+            .onChange(of: focus.completionDates) { _ in
+                store.updateFocus(focus)
+            }
         }
-        .onChange(of: focus.todos) { _ in
-               store.updateFocus(focus)
-           }
-           .onChange(of: focus.completionDates) { _ in
-               store.updateFocus(focus)
-           }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(focus.title)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                
+                Menu {
+                    Button(action: { showingEditView = true }) {
+                        Label("Bearbeiten", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Löschen", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title2)
+                        .foregroundColor(Palette.accent)
+                }
+                
+            }
+        }
+
+        
     }
     
     // MARK: - Subviews
@@ -382,6 +443,7 @@ struct FocusDetailView_Previews: PreviewProvider {
             focus: .constant(sampleFocus),
             store: FocusStore()
         )
+        .environmentObject(RevenueCatManager())
     }
 }
 

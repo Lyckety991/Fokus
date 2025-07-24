@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 // MARK: - Datenexport-Service
 class DataExportService {
     static func exportFocusesToCSV(focusItems: [FocusItemModel]) -> String {
@@ -21,12 +20,15 @@ class DataExportService {
             
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "dd.MM.yyyy"
-            let lastCompletion = focus.lastCompletionDate != nil ?
-                dateFormatter.string(from: focus.lastCompletionDate!) : "N/A"
+            
+            // FIX: Verwende das letzte Datum aus completionDates statt lastCompletionDate
+            let lastCompletion = focus.completionDates.max() != nil ?
+                dateFormatter.string(from: focus.completionDates.max()!) : "N/A"
             
             csv += "\(title);\(description);\(weakness);\(count);\(lastCompletion)\n"
         }
         
+        print("📄 Generierte CSV:\n\(csv)") // Debug-Ausgabe
         return csv
     }
     
@@ -55,6 +57,7 @@ class DataExportService {
             csv += "\(dateString);\(title);25\n"
         }
         
+        print("📄 Generierte Completions CSV:\n\(csv)") // Debug-Ausgabe
         return csv
     }
     
@@ -63,9 +66,10 @@ class DataExportService {
         
         do {
             try csv.write(to: path, atomically: true, encoding: .utf8)
+            print("✅ Datei geschrieben nach: \(path)")
             return path
         } catch {
-            print("Export fehlgeschlagen: \(error)")
+            print("❌ Export fehlgeschlagen: \(error)")
             return nil
         }
     }

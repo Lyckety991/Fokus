@@ -1,0 +1,159 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "71EEC5C1",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "22.99",
+      "familyShareable" : false,
+      "internalID" : "6748946245",
+      "localizations" : [
+        {
+          "description" : "Volle Funktionen ohne Einschränkungen",
+          "displayName" : "Fokus Pro (Lifetime)",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "patricklanham.Fokus.Lifetime",
+      "referenceName" : "Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6748945953",
+    "_developerTeamID" : "48PCKXTHH4",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 775040785.80043101,
+    "_locale" : "de",
+    "_storefront" : "DEU",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21737854",
+      "localizations" : [
+
+      ],
+      "name" : "Fokus Abo",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "8.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6748946158",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Alle Premium-Funktionen ein ganzes Jahr lang.",
+              "displayName" : "Fokus Pro (Jährlich)",
+              "locale" : "de"
+            }
+          ],
+          "productID" : "patricklanham.Fokus.Annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Annual",
+          "subscriptionGroupID" : "21737854",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6748946244",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Volle Funktionen – flexibel im Monatsabo.",
+              "displayName" : "Fokus Pro (Monatlich)",
+              "locale" : "de"
+            }
+          ],
+          "productID" : "patricklanham.Fokus.Monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "monthly",
+          "subscriptionGroupID" : "21737854",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

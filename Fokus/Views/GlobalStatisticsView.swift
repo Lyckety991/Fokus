@@ -9,37 +9,91 @@ import SwiftUI
 
 // MARK: - Verbesserte Globale Statistikansicht
 struct GlobalStatisticsView: View {
-    let statistics: GlobalStatistics
+    
+    @EnvironmentObject var revenueCat: RevenueCatManager
+    
+    @State private var showPaywall = false
     @State private var exportFile: URL?
     @State private var showingExporter = false
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
+    
+    let statistics: GlobalStatistics
     @ObservedObject var store: FocusStore
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header mit Level und XP
-                levelHeader
-                
-                // Kernstatistiken
-                coreStatsGrid
-                
-                // Achievements
-                achievementsSection
-                
-                // Export-Button
-                exportSection
+        ZStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header mit Level und XP
+                    levelHeader
+                    
+                    ZStack {
+                        // Immer das coreStatsGrid anzeigen
+                        coreStatsGrid
+                            .blur(radius: 3)
+                        
+                        // Premium-Sperrschicht nur wenn nötig
+                        if !revenueCat.isPremium {
+                            ZStack {
+                                // 1. Material-Blur für den gesamten Hintergrund
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.regularMaterial) // iOS 15+ Apple-Style Material
+                                    .opacity(0.95)
+                                
+                                // 2. Schloss-Icon mit Text
+                                VStack(spacing: 8) {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(.primary) // Dynamische Farbe
+                                    
+                                    Text("Statistiken nur mit Premium verfügbar")
+                                        .font(.footnote)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary) // Dynamische Farbe
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding()
+                            }
+                        }
+                    }
+                    .sheet(isPresented: $showPaywall) {
+                        PaywallView()
+                    }
+                    .onTapGesture {
+                        showPaywall = true
+                    }
+
+                    // Achievements
+                    
+
+                    // Export-Button
+                    exportSection
+                }
+                .padding()
             }
-            .padding()
         }
         .navigationTitle("Statistiken")
         .background(Color(.systemGroupedBackground))
         .sheet(isPresented: $showingExporter) {
+            // Nur anzeigen wenn exportFile nicht nil ist
             if let exportFile = exportFile {
                 ActivityViewController(activityItems: [exportFile])
+                    .onDisappear {
+                        // Aufräumen nach dem Sheet
+                        self.exportFile = nil
+                    }
+            } else {
+                // Fallback für den Fall, dass etwas schief läuft
+                Text("Export wird vorbereitet...")
+                    .padding()
             }
         }
-
-
+        .alert("Export", isPresented: $showingAlert) {
+            Button("OK") { }
+        } message: {
+            Text(alertMessage)
+        }
     }
     
     private var levelHeader: some View {
@@ -75,8 +129,6 @@ struct GlobalStatisticsView: View {
                 endPoint: .trailing
             )
         )
-       
-
         .cornerRadius(15)
     }
     
@@ -116,24 +168,7 @@ struct GlobalStatisticsView: View {
         }
     }
     
-    private var achievementsSection: some View {
-        VStack(alignment: .leading) {
-            Text("Achievements")
-                .font(.title2)
-                .bold()
-                .padding(.bottom, 8)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(statistics.achievements) { achievement in
-                        AchievementCard(achievement: achievement)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-        }
-        .padding(.vertical)
-    }
+ 
     
     private var exportSection: some View {
         VStack {
@@ -151,45 +186,77 @@ struct GlobalStatisticsView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            
+            // Debug Info
+            if !store.focusItems.isEmpty {
+                Text("Verfügbare Fokusse: \(store.focusItems.count)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.vertical)
     }
     
     private func exportData() {
-        let focusCSV = DataExportService.exportFocusesToCSV(focusItems: store.focusItems)
+        print("🔄 Export startet...")
+        print("📊 Anzahl FocusItems: \(store.focusItems.count)")
         
-        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Documents directory not found")
+        // Prüfe ob überhaupt Daten vorhanden sind
+        guard !store.focusItems.isEmpty else {
+            alertMessage = "Keine Fokus-Daten zum Exportieren vorhanden."
+            showingAlert = true
             return
         }
         
-        let fileURL = documentsDir.appendingPathComponent("fokusse_export.csv")
+        // CSV generieren
+        let focusCSV = DataExportService.exportFocusesToCSV(focusItems: store.focusItems)
+        
+        // Prüfe ob CSV nicht leer ist
+        guard !focusCSV.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              focusCSV.contains(";") else { // Mindestens Header sollte Semikolon enthalten
+            alertMessage = "Fehler beim Generieren der CSV-Daten."
+            showingAlert = true
+            return
+        }
+        
+        // Datei erstellen
+        let timestamp = DateFormatter().apply {
+            $0.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        }.string(from: Date())
+        
+        let filename = "fokusse_export_\(timestamp).csv"
+        
+        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            alertMessage = "Dokumente-Ordner nicht gefunden."
+            showingAlert = true
+            return
+        }
+        
+        let fileURL = documentsDir.appendingPathComponent(filename)
         
         do {
             try focusCSV.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("✅ Datei geschrieben: \(fileURL)")
             
-            // Inhalt prüfen
-            let content = try String(contentsOf: fileURL)
-            guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                print("CSV-Datei ist leer – kein Export")
-                return
-            }
-
-            print("📄 Datei erstellt: \(fileURL.lastPathComponent)")
-            print("📦 Inhalt:\n\(content)")
-
-            // Zustand aktualisieren
+            // Datei-Inhalt überprüfen
+            let savedContent = try String(contentsOf: fileURL)
+            print("📦 Gespeicherter Inhalt:\n\(savedContent)")
+            
+            // FIX: Erst die Datei setzen, DANN das Sheet anzeigen
             exportFile = fileURL
-            showingExporter = true
+            
+            // Kleiner Delay um sicherzustellen, dass der State aktualisiert ist
+            DispatchQueue.main.async {
+                showingExporter = true
+            }
             
         } catch {
-            print("❌ Fehler beim Schreiben: \(error)")
+            print("❌ Schreibfehler: \(error)")
+            alertMessage = "Fehler beim Erstellen der Datei: \(error.localizedDescription)"
+            showingAlert = true
         }
     }
-
-
 }
-
 
 // Hilfs-View für Share Sheet
 struct ActivityViewController: UIViewControllerRepresentable {
@@ -197,10 +264,17 @@ struct ActivityViewController: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        
+        // Bessere Konfiguration für iPad
+        if let popover = controller.popoverPresentationController {
+            popover.sourceView = UIView() // Fallback für iPad
+        }
+        
         controller.completionWithItemsHandler = { (activityType, completed, returnedItems, error) in
-            // Clean up after sharing completes
-            if completed, let url = activityItems.first as? URL {
-                try? FileManager.default.removeItem(at: url)
+            if let error = error {
+                print("❌ Share-Fehler: \(error)")
+            } else if completed {
+                print("✅ Export erfolgreich geteilt")
             }
         }
         return controller
@@ -245,39 +319,7 @@ struct StatCard: View {
     }
 }
 
-struct AchievementCard: View {
-    let achievement: Achievement
-    
-    var body: some View {
-        VStack {
-            ZStack {
-                Circle()
-                    .fill(achievement.isUnlocked ? Color.yellow : Color.gray.opacity(0.3))
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: achievement.icon)
-                    .font(.title2)
-                    .foregroundColor(achievement.isUnlocked ? .black : .gray)
-            }
-            
-            Text(achievement.title)
-                .font(.subheadline)
-                .bold()
-                .multilineTextAlignment(.center)
-                .lineLimit(1)
-                .frame(width: 80)
-            
-            ProgressView(value: achievement.progress)
-                .progressViewStyle(LinearProgressViewStyle(tint: achievement.isUnlocked ? .green : .gray))
-                .frame(width: 80)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-        .opacity(achievement.isUnlocked ? 1 : 0.7)
-    }
-}
+
 
 struct CircularProgressView: View {
     let progress: Double
@@ -307,19 +349,34 @@ struct CircularProgressView: View {
     }
 }
 
+// Extension für DateFormatter
+extension DateFormatter {
+    func apply(_ closure: (DateFormatter) -> Void) -> DateFormatter {
+        closure(self)
+        return self
+    }
+}
+
 #Preview {
+    
     GlobalStatisticsView(statistics: GlobalStatistics(), store: FocusStore())
+       
     
     
 }
 
 #Preview {
+    let testManager = RevenueCatManager()
+    testManager.setPremiumStatus(false) // Premium aktiv setzen
+    
     let store = FocusStore()
     store.focusItems = [
         FocusItemModel(title: "Meditation", description: "Tägliche Meditation", weakness: "Ablenkung", completionDates: [Date()]),
         FocusItemModel(title: "Sport", description: "Joggen", weakness: "Faulheit", completionDates: [])
     ]
+    
     return GlobalStatisticsView(statistics: GlobalStatistics(), store: store)
+        .environmentObject(testManager) // ✅ Genau DEN testManager übergeben!
 }
 
 

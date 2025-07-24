@@ -15,6 +15,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Fokus", systemImage: "target")
                 }
+            
+            AchievementView(store: FocusStore())
+                .tabItem {
+                    Label("Erfolge", systemImage: "trophy.fill")
+                }
 
             SettingsView()
                 .tabItem {
