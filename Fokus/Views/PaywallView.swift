@@ -1,9 +1,6 @@
-//
-//  PaywallView.swift
-//  Fokus
-//
-//  Created by Patrick Lanham on 20.07.25.
-//
+
+
+
 import SwiftUI
 import RevenueCat
 
@@ -17,12 +14,13 @@ struct PaywallView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     
-    let features = [
-        "Unbegrenzte Statistiken",
-        "Fortschrittsanalyse",
-        "Premium-Benachrichtigungen",
-        "Exklusive Fokus-Modi",
-        "Wöchentliche Berichte",
+    // Klarere, app-spezifische Features
+    private let features = [
+        "Unbegrenzte Fokusse & Gewohnheiten",
+        "Detaillierte Statistiken & Diagramme",
+        "Level- & XP-System ohne Limit",
+        "Race Goals & Fokus-Modi",
+        "CSV-Export deiner Daten",
         "Keine Werbung"
     ]
     
@@ -30,8 +28,8 @@ struct PaywallView: View {
         ZStack {
             Palette.background.ignoresSafeArea()
             
-            VStack(spacing: 20) {
-                // Header
+            VStack(spacing: 16) {
+                // Header / Close
                 HStack {
                     Spacer()
                     Button(action: { dismiss() }) {
@@ -40,127 +38,158 @@ struct PaywallView: View {
                             .foregroundColor(Palette.textSecondary)
                     }
                 }
-                .padding(.top)
+                .padding(.top, 12)
+                .padding(.horizontal)
                 
                 if isLoading {
                     Spacer()
-                    VStack {
+                    VStack(spacing: 12) {
                         ProgressView()
                             .scaleEffect(1.5)
-                        Text("Lade Abo-Optionen...")
+                        Text("Lade Pro-Optionen…")
                             .foregroundColor(Palette.textSecondary)
-                            .padding(.top)
                     }
                     Spacer()
                 } else {
-                    // Hauptinhalt
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            // Titel
-                            Text("Hole dir Fokus Pro!")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(Palette.textPrimary)
-                                .multilineTextAlignment(.center)
+                        VStack(spacing: 24) {
+                            // MARK: Hero
+                            VStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Palette.accent, Palette.purple],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 72, height: 72)
+                                        .shadow(color: Palette.accent.opacity(0.4), radius: 12, x: 0, y: 6)
+                                    
+                                    Image(systemName: "target")
+                                        .font(.system(size: 32, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                                
+                                Text("Fokus Pro")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Palette.textPrimary)
+                                
+                                Text("Baue konsistente Gewohnheiten auf – mit vollen Statistiken und unbegrenzten Zielen.")
+                                    .font(.subheadline)
+                                    .foregroundColor(Palette.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 16)
+                            }
+                            .padding(.top, 8)
                             
-                            // Features
+                            // MARK: Features
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Mit Fokus Pro bekommst du:")
                                     .headlineStyle()
-                                    .padding(.bottom, 4)
                                 
                                 ForEach(features, id: \.self) { feature in
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: 10) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Palette.completed)
-                                            .font(.system(size: 20))
+                                            .font(.system(size: 18))
                                         Text(feature)
                                             .foregroundColor(Palette.textPrimary)
                                         Spacer()
                                     }
-                                    .padding(.vertical, 4)
                                 }
                             }
                             .padding()
                             .cardStyle()
                             
-                            // Abo-Optionen von RevenueCat
+                            // MARK: Angebote
                             if let offering = offerings?.current {
-                                VStack(spacing: 16) {
-                                    Text("Wähle dein Abo:")
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Wähle dein Paket:")
                                         .headlineStyle()
                                     
-                                    ForEach(offering.availablePackages, id: \.identifier) { package in
+                                    let sortedPackages = offering.availablePackages.sorted(by: sortPackages)
+                                    
+                                    ForEach(sortedPackages, id: \.identifier) { package in
+                                        let isRecommended = (package.packageType == .annual)
+                                        
                                         PackageButton(
                                             package: package,
                                             isSelected: selectedPackage?.identifier == package.identifier,
+                                            isRecommended: isRecommended,
                                             onTap: { selectedPackage = package }
                                         )
                                     }
                                 }
                                 .padding()
                                 .cardStyle()
+                            } else {
+                                Text("Keine Abo-Optionen verfügbar. Bitte versuche es später erneut.")
+                                    .font(.footnote)
+                                    .foregroundColor(Palette.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
                             }
                             
-                            // Footer
-                            VStack(spacing: 8) {
-                                Text("""
-                                • Zahlung wird über dein iTunes-Konto abgewickelt
-                                • Abo verlängert sich automatisch, außer es wird 24h vor Ablauf gekündigt
-                                • Du kannst jederzeit in den Einstellungen kündigen
-                                """)
-                                .font(.caption)
-                                .foregroundColor(Palette.textSecondary)
-                                .multilineTextAlignment(.center)
+                            // MARK: Hinweise / Rechtliches
+                            VStack(spacing: 6) {
+                                Text("Die Zahlung wird über dein Apple-ID-Konto abgewickelt.")
+                                Text("Abos verlängern sich automatisch, sofern sie nicht mindestens 24 Stunden vor Ablauf gekündigt werden.")
+                                Text("Verwalte oder kündige dein Abo jederzeit in den iOS-Einstellungen unter „Apple-ID“ → „Abonnements“.")
                             }
-                            .padding(.horizontal)
+                            .font(.caption2)
+                            .foregroundColor(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
                         }
                         .padding(.horizontal)
+                        .padding(.bottom, 8)
                     }
                     
-                    // Kauf-Button
-                    Button(action: purchase) {
-                        HStack {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
+                    // MARK: Kauf-Button
+                    VStack(spacing: 8) {
+                        Button(action: purchase) {
+                            HStack(spacing: 8) {
+                                if isLoading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                }
+                                
+                                Text(buttonTitle)
+                                    .font(.headline)
+                                    .fontWeight(.bold)
                             }
-                            
-                            Text(selectedPackage != nil ? "Jetzt \(selectedPackage!.storeProduct.localizedTitle) kaufen" : "Paket auswählen")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            selectedPackage != nil ?
-                            LinearGradient(
-                                gradient: Gradient(colors: [Palette.accent, Palette.purple]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ) :
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.gray, Color.gray]),
-                                startPoint: .leading,
-                                endPoint: .trailing
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                selectedPackage != nil
+                                ? LinearGradient(
+                                    gradient: Gradient(colors: [Palette.accent, Palette.purple]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                                : LinearGradient(
+                                    gradient: Gradient(colors: [Color.gray, Color.gray]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .cornerRadius(16)
+                            .cornerRadius(16)
+                        }
+                        .disabled(selectedPackage == nil || isLoading)
+                        .padding(.horizontal)
+                        
+                        Button(action: restorePurchase) {
+                            Text("Kauf wiederherstellen")
+                                .font(.footnote)
+                                .foregroundColor(Palette.accent)
+                        }
+                        .disabled(isLoading)
+                        .padding(.bottom, 8)
                     }
-                    .disabled(selectedPackage == nil || isLoading)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                    
-                    // Wiederherstellen-Button
-                    Button(action: restorePurchase) {
-                        Text("Kauf wiederherstellen")
-                            .font(.footnote)
-                            .foregroundColor(Palette.accent)
-                    }
-                    .disabled(isLoading)
-                    .padding(.bottom)
                 }
             }
         }
@@ -174,6 +203,28 @@ struct PaywallView: View {
         }
     }
     
+    // MARK: - Helper: Button-Titel
+    
+    private var buttonTitle: String {
+        guard let package = selectedPackage else { return "Paket auswählen" }
+        
+        let baseName: String
+        switch package.packageType {
+        case .monthly:
+            baseName = "Monatsabo"
+        case .annual:
+            baseName = "Jahresabo"
+        case .lifetime:
+            baseName = "Lifetime"
+        default:
+            baseName = package.storeProduct.localizedTitle
+        }
+        
+        return "Fokus Pro – \(baseName) für \(package.storeProduct.localizedPriceString) freischalten"
+    }
+    
+    // MARK: - Offerings laden
+    
     private func loadOfferings() {
         isLoading = true
         
@@ -184,10 +235,9 @@ struct PaywallView: View {
                 await MainActor.run {
                     self.offerings = fetchedOfferings
                     
-                    // Automatisch das erste Paket auswählen (normalerweise das empfohlene)
-                    if let currentOffering = fetchedOfferings.current,
-                       let firstPackage = currentOffering.availablePackages.first {
-                        self.selectedPackage = firstPackage
+                    if let currentOffering = fetchedOfferings.current {
+                        let sorted = currentOffering.availablePackages.sorted(by: sortPackages)
+                        self.selectedPackage = sorted.first
                     }
                     
                     self.isLoading = false
@@ -202,9 +252,24 @@ struct PaywallView: View {
         }
     }
     
+    // MARK: - Paket-Sortierung (Jahr → Monat → Lifetime → Rest)
+    
+    private func sortPackages(_ p1: Package, _ p2: Package) -> Bool {
+        func weight(for type: PackageType) -> Int {
+            switch type {
+            case .annual: return 0      // ganz oben, bestes Angebot
+            case .monthly: return 1
+            case .lifetime: return 2
+            default: return 3
+            }
+        }
+        return weight(for: p1.packageType) < weight(for: p2.packageType)
+    }
+    
+    // MARK: - Kauf
+    
     private func purchase() {
         guard let package = selectedPackage else { return }
-        
         isLoading = true
         
         Task {
@@ -214,7 +279,6 @@ struct PaywallView: View {
                 self.isLoading = false
                 
                 if success {
-                    // Erfolgreich gekauft - View schließen
                     dismiss()
                 } else {
                     self.errorMessage = "Kauf fehlgeschlagen. Bitte versuche es erneut."
@@ -234,7 +298,6 @@ struct PaywallView: View {
                 self.isLoading = false
                 
                 if success {
-                    // Erfolgreich wiederhergestellt
                     dismiss()
                 } else {
                     self.errorMessage = "Keine vorherigen Käufe gefunden."
@@ -245,108 +308,132 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - Package Button Component (Vereinfacht)
+// MARK: - Package Button Component
+
 struct PackageButton: View {
     let package: Package
     let isSelected: Bool
+    let isRecommended: Bool
     let onTap: () -> Void
     
     var body: some View {
         Button(action: onTap) {
-            packageContent
-        }
-    }
-    
-    private var packageContent: some View {
-        HStack {
-            leadingContent
-            Spacer()
-            trailingContent
-        }
-        .padding()
-        .background(backgroundStyle)
-        .cornerRadius(12)
-    }
-    
-    private var leadingContent: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(package.storeProduct.localizedTitle)
-                .fontWeight(.semibold)
-                .foregroundColor(Palette.textPrimary)
-            
-            Text(packageDescription)
-                .font(.footnote)
-                .foregroundColor(Palette.textSecondary)
-        }
-    }
-    
-    private var trailingContent: some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            priceText
-            
-            if let discount = calculateDiscount() {
-                discountBadge(discount: discount)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(titleText)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Palette.textPrimary)
+                        
+                        if isRecommended {
+                            Text("Beliebt")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Palette.accent, Palette.purple],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                )
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    Text(subtitleText)
+                        .font(.footnote)
+                        .foregroundColor(Palette.textSecondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(package.storeProduct.localizedPriceString)
+                        .font(.headline)
+                        .foregroundColor(Palette.textPrimary)
+                    
+                    if let discount = calculateDiscount() {
+                        Text("\(discount)% sparen")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.12))
+                            .cornerRadius(4)
+                    }
+                }
             }
+            .padding(12)
+            .background(backgroundStyle)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isSelected ? Palette.accent : Color.gray.opacity(0.3),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .cornerRadius(12)
         }
+        .buttonStyle(.plain)
     }
     
-    private var priceText: some View {
-        Group {
-            if let introPrice = package.storeProduct.introductoryDiscount {
-                Text(introPrice.localizedPriceString)
-            } else {
-                Text(package.storeProduct.localizedPriceString)
-            }
-        }
-        .font(.title3)
-        .fontWeight(.bold)
-        .foregroundColor(Palette.textPrimary)
-    }
+    // MARK: - Texte
     
-    private func discountBadge(discount: Int) -> some View {
-        Text("\(discount)% sparen")
-            .font(.caption)
-            .foregroundColor(.green)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color.green.opacity(0.1))
-            .cornerRadius(4)
-    }
-    
-    private var backgroundStyle: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isSelected ? Palette.accent : Color.gray.opacity(0.3), lineWidth: 2)
-            
-            (isSelected ? Palette.accent.opacity(0.1) : Palette.card.opacity(0.5))
-        }
-    }
-    
-    private var packageDescription: String {
+    private var titleText: String {
         switch package.packageType {
         case .monthly:
-            return "Monatliche Zahlung"
+            return "Monatliches Abo"
         case .annual:
-            return "Jährliche Zahlung - Bestes Angebot!"
+            return "Jährliches Abo"
         case .lifetime:
-            return "Einmalige Zahlung"
+            return "Lifetime"
         default:
-            return "Premium-Zugang"
+            return package.storeProduct.localizedTitle
         }
     }
+    
+    private var subtitleText: String {
+        switch package.packageType {
+        case .monthly:
+            return "Flexibel, monatlich kündbar"
+        case .annual:
+            return "Spare im Jahrespaket"
+        case .lifetime:
+            return "Einmal zahlen, für immer nutzen"
+        default:
+            return "Voller Zugriff auf Fokus Pro"
+        }
+    }
+    
+    // MARK: - Rabatt-Badge
     
     private func calculateDiscount() -> Int? {
         switch package.packageType {
         case .annual:
-            return 58
+            // z. B. im Vergleich zum Monatsabo – statisch, weil wir deine Preise kennen
+            return 62 // bei 1,99€/Monat vs. 8,99€/Jahr ≈ 62% günstiger
         case .lifetime:
-            return 75
+            return nil // optional
         default:
             return nil
         }
     }
+    
+    private var backgroundStyle: some View {
+        Group {
+            if isSelected {
+                Palette.accent.opacity(0.1)
+            } else {
+                Palette.card.opacity(0.8)
+            }
+        }
+    }
 }
-
 
 // Preview
 struct PaywallView_Previews: PreviewProvider {

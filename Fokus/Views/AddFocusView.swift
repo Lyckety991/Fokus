@@ -21,7 +21,7 @@ struct AddFocusView: View {
 
     @State private var enableReminder = false
     @State private var reminderDate = Date()
-    @State private var repeatsDaily = false
+    // repeatsDaily State Variable entfernt, da automatisch aktiviert
 
     var body: some View {
         NavigationStack {
@@ -36,6 +36,7 @@ struct AddFocusView: View {
                 }
                 .padding()
             }
+            .scrollIndicators(.hidden)
             .background(Palette.background)
             .navigationTitle(existingFocus != nil ? "Fokus bearbeiten" : "Neuer Fokus")
             .navigationBarTitleDisplayMode(.inline)
@@ -76,6 +77,9 @@ struct AddFocusView: View {
                 .background(Palette.card)
                 .cornerRadius(12)
                 .foregroundColor(Palette.textPrimary)
+            Text("Beschreibe deinen Fokus in wenigen Sätzen.")
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
     }
 
@@ -89,6 +93,9 @@ struct AddFocusView: View {
                 .background(Palette.card)
                 .cornerRadius(12)
                 .foregroundColor(Palette.textPrimary)
+            Text("Beschreibe hier deine Schwächen, damit du sie in deiner Actionplan besser überwinden kannst.")
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
     }
 
@@ -102,6 +109,7 @@ struct AddFocusView: View {
                 Label("Ziel hinzufügen", systemImage: "plus.circle.fill")
                     .foregroundColor(Palette.accent)
             }
+            
 
             ForEach($todos) { $todo in
                 HStack {
@@ -114,6 +122,10 @@ struct AddFocusView: View {
                 }
             }
             .onDelete(perform: deleteTodo)
+            
+            Text("Füge hier deine Ziele hinzu um den Fokus höhher zu halten")
+                .foregroundStyle(.secondary)
+                .font(.caption)
 
         }
         .padding()
@@ -123,8 +135,10 @@ struct AddFocusView: View {
 
     private var reminderSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle("Erinnerung aktivieren", isOn: $enableReminder)
-                .toggleStyle(SwitchToggleStyle(tint: Palette.accent))
+            HStack {
+                Toggle("Tägliche Erinnerung", isOn: $enableReminder)
+                    .toggleStyle(SwitchToggleStyle(tint: Palette.accent))
+            }
 
             if enableReminder {
                 VStack(alignment: .leading, spacing: 8) {
@@ -135,13 +149,24 @@ struct AddFocusView: View {
                     )
                     .datePickerStyle(.compact)
 
-                    Toggle("Täglich wiederholen", isOn: $repeatsDaily)
-                        .toggleStyle(SwitchToggleStyle(tint: Palette.accent))
+                    // Info-Text für bessere UX
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(Palette.accent)
+                            .font(.caption)
+                        Text("Erinnerung wird täglich zur eingestellten Zeit wiederholt")
+                            .font(.caption)
+                            .foregroundColor(Palette.textSecondary)
+                    }
                 }
                 .padding()
                 .background(Palette.card.opacity(0.7))
                 .cornerRadius(12)
             }
+            
+            Text("Stelle hier deine tägliche Erinnerung ein")
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
         .padding()
         .background(Palette.card)
@@ -171,9 +196,8 @@ struct AddFocusView: View {
         weakness = focus.weakness
         todos = focus.todos.isEmpty ? [FocusTodoModel(title: "")] : focus.todos
         
-        // Toggle-Zustände aus den gespeicherten Daten wiederherstellen
+        // Toggle-Zustand aus den gespeicherten Daten wiederherstellen
         enableReminder = focus.reminderDate != nil
-        repeatsDaily = focus.repeatsDaily
         
         if let savedReminderDate = focus.reminderDate {
             reminderDate = savedReminderDate
@@ -204,7 +228,7 @@ struct AddFocusView: View {
             completionDates: existingFocus?.completionDates ?? [],
             reminderDate: enableReminder ? reminderDate : nil,
             notificationID: existingFocus?.notificationID,
-            repeatsDaily: enableReminder ? repeatsDaily : false
+            repeatsDaily: enableReminder // Automatisch true wenn Reminder aktiviert
         )
 
         if existingFocus != nil {
@@ -223,7 +247,7 @@ struct AddFocusView: View {
                     store.updateNotificationSettings(
                         for: focusToSave.id,
                         notificationID: id,
-                        repeatsDaily: repeatsDaily
+                        repeatsDaily: true // Immer täglich wenn Reminder aktiviert
                     )
                 }
             }
@@ -248,11 +272,12 @@ struct AddFocusView: View {
         guard let reminderDate = focus.reminderDate else { return nil }
 
         do {
+            // Immer mit repeatsDaily: true, da automatisch aktiviert
             let id = try await NotificationManager.shared.scheduleNotification(
                 title: "Fokus Erinnerung",
                 body: focus.title,
                 at: reminderDate,
-                repeatsDaily: focus.repeatsDaily
+                repeatsDaily: true
             )
             return id
         } catch {

@@ -13,6 +13,22 @@ enum NotificationError: Error {
     case permissionDenied
     case schedulingFailed(Error)
     case invalidDate
+    case notificationsNotAuthorized
+}
+
+extension NotificationError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            return "Berechtigung für Benachrichtigungen wurde verweigert"
+        case .schedulingFailed(let error):
+            return "Fehler beim Planen der Benachrichtigung: \(error.localizedDescription)"
+        case .invalidDate:
+            return "Das angegebene Datum liegt in der Vergangenheit"
+        case .notificationsNotAuthorized:
+            return "Benachrichtigungen sind nicht autorisiert"
+        }
+    }
 }
 
 @MainActor
@@ -26,25 +42,25 @@ class NotificationManager {
     
     
     func checkNotificationsEnabled() async -> Bool {
-        return await withCheckedContinuation { continuation in
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                continuation.resume(returning: settings.authorizationStatus == .authorized)
-            }
-        }
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus == .authorized
+    }
+    
+    func getNotificationSettings() async -> UNNotificationSettings {
+        return await center.notificationSettings()
     }
     
     // MARK: - Authorization
     func requestAuthorization() async -> Bool {
-          do {
-              let granted = try await UNUserNotificationCenter.current()
-                  .requestAuthorization(options: [.alert, .badge, .sound])
-              print("🔔 Anfrage: \(granted ? "erlaubt" : "abgelehnt")")
-              return granted
-          } catch {
-              print("❌ Fehler bei Anfrage: \(error.localizedDescription)")
-              return false
-          }
-      }
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+            log("🔔 Anfrage: \(granted ? "erlaubt" : "abgelehnt")")
+            return granted
+        } catch {
+            log("❌ Fehler bei Anfrage: \(error.localizedDescription)")
+            return false
+        }
+    }
   
     // MARK: - Scheduling
     func scheduleNotification(
@@ -53,8 +69,15 @@ class NotificationManager {
         at date: Date,
         repeatsDaily: Bool = false
     ) async throws -> String {
+        // Überprüfe Datum
         guard date > Date() else {
             throw NotificationError.invalidDate
+        }
+        
+        // Überprüfe Berechtigung
+        let isAuthorized = await checkNotificationsEnabled()
+        guard isAuthorized else {
+            throw NotificationError.notificationsNotAuthorized
         }
 
         let content = UNMutableNotificationContent()
@@ -83,23 +106,36 @@ class NotificationManager {
         do {
             try await center.add(request)
             log("✅ Erinnerung geplant (\(repeatsDaily ? "täglich" : "einmalig")) für \(date.formatted()), ID: \(id)")
+            
+            // Kurze Verzögerung für Debug-Ausgabe nach Verarbeitung
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 Sekunden
             await listPendingNotifications()
             return id
         } catch {
-            log("Fehler beim Planen: \(error.localizedDescription)")
+            log("❌ Fehler beim Planen: \(error.localizedDescription)")
             throw NotificationError.schedulingFailed(error)
         }
     }
 
     // MARK: - Cancellation
     func cancelNotification(withID id: String) async {
-         center.removePendingNotificationRequests(withIdentifiers: [id])
+        center.removePendingNotificationRequests(withIdentifiers: [id])
         log("🗑️ Notification mit ID \(id) gelöscht")
     }
     
     func cancelAllNotifications() async {
-         center.removeAllPendingNotificationRequests()
+        center.removeAllPendingNotificationRequests()
         log("🧹 Alle Benachrichtigungen gelöscht")
+    }
+    
+    // MARK: - Utility Methods
+    func scheduleTestNotification() async throws -> String {
+        let testDate = Date().addingTimeInterval(10) // 10 Sekunden in der Zukunft
+        return try await scheduleNotification(
+            title: "Test Benachrichtigung",
+            body: "Dies ist eine Test-Benachrichtigung",
+            at: testDate
+        )
     }
 
     // MARK: - Debugging

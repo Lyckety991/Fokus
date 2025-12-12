@@ -2,113 +2,156 @@
 //  RevenueCatManager.swift
 //  Fokus
 //
-//  Created by Patrick Lanham on 19.07.25.
+//  Created by Patrick Lanham on 19.07.25
+//  Überarbeitet: 11.11.2025
 //
 
 import Foundation
 import RevenueCat
 
-/// Singleton zur Verwaltung von Käufen, Premiumstatus und Wiederherstellungen über RevenueCat
+/// Verwaltet Premium-Status, Käufe, Wiederherstellung & Offerings via RevenueCat.
+/// - Hinweis: Als @MainActor deklariert, damit @Published-Änderungen sicher auf dem Main-Thread passieren.
+@MainActor
 final class RevenueCatManager: NSObject, ObservableObject {
- 
-    static let shared = RevenueCatManager()
-    
-    /// Testfunktion für Premium
-    func setPremiumStatus(_ status: Bool) {
-            isPremium = status
-        }
 
-    /// Gibt an, ob der Nutzer aktuell ein aktives Premium-Abo besitzt
+    // MARK: - Singleton / DI
+    static let shared = RevenueCatManager()
+    override init() { super.init() }
+
+    // MARK: - Public State
+    /// Aktiver Premium-Status (entitlement aktiv?)
     @Published private(set) var isPremium: Bool = false
 
-    /// RevenueCat Entitlement Identifier (wie in deinem Dashboard benannt)
-     let entitlementID = "Pro"
+    /// Offerings-Cache (z. B. für Paywall)
+    @Published private(set) var offerings: Offerings?
 
-     override init() {}
+    /// Dein Entitlement-Identifier (muss zum Dashboard passen)
+    let entitlementID = "Pro"
 
-    // MARK: - Setup
+    /// Wurde RC bereits konfiguriert?
+    private var isConfigured = false
 
-    /// Initialisiert RevenueCat mit deinem API-Key (z. B. im AppDelegate oder @main App)
+    // MARK: - Configure
+
+    /// Initialisiert RevenueCat mit deinem API-Key. Idempotent.
     func configure(withAPIKey apiKey: String) {
+        guard !isConfigured else {
+            // Bereits konfiguriert: trotzdem Kundeninfos aktualisieren
+            observeCustomerInfoChanges() // sicherstellen, dass Delegate sitzt
+            Task { await refreshCustomerInfo() }
+            return
+        }
+
+        #if DEBUG
+        Purchases.logLevel = .debug
+        #endif
+
         Purchases.configure(withAPIKey: apiKey)
-        observeCustomerInfoChanges()
-        fetchCustomerInfo()
-    }
-
-    // MARK: - Observer
-
-    /// Beobachtet Änderungen am CustomerInfo-Objekt (z. B. bei neuen Käufen)
-    private func observeCustomerInfoChanges() {
-        Purchases.shared.getCustomerInfo { [weak self] info, _ in
-            self?.updatePremiumStatus(from: info)
-        }
-
         Purchases.shared.delegate = self
-    }
+        isConfigured = true
 
-    private func updatePremiumStatus(from info: CustomerInfo?) {
-        let hasPremium = info?.entitlements[entitlementID]?.isActive == true
-        DispatchQueue.main.async {
-            self.isPremium = hasPremium
+       
+        Task {
+            await refreshCustomerInfo()
+            await loadOfferings()
         }
     }
 
-    private func fetchCustomerInfo() {
-        Task {
-            do {
-                let info = try await Purchases.shared.customerInfo()
-                updatePremiumStatus(from: info)
-            } catch {
-                print("❌ Fehler beim Laden von CustomerInfo: \(error)")
+    // MARK: - Customer Info
+
+    /// Lädt CustomerInfo neu und aktualisiert den Premium-Status.
+    func refreshCustomerInfo() async {
+        do {
+            let info = try await Purchases.shared.customerInfo()
+            applyPremiumStatus(from: info)
+        } catch {
+            debugPrint("❌ CustomerInfo laden fehlgeschlagen: \(error)")
+        }
+    }
+
+    /// Beobachtet Änderungen am CustomerInfo-Objekt (redundant zum Delegate – aber unkritisch)
+    private func observeCustomerInfoChanges() {
+        // Moderne RC-SDKs pushen Updates über den Delegate.
+        // Dieser Call schadet nicht, aber ist streng genommen nicht nötig, da wir den Delegate nutzen.
+        // Belassen wir für Abwärtskompatibilität:
+        Purchases.shared.getCustomerInfo { [weak self] info, _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.applyPremiumStatus(from: info)
             }
         }
     }
 
-    // MARK: - Kauf
+    private func applyPremiumStatus(from info: CustomerInfo?) {
+        let active = info?.entitlements[entitlementID]?.isActive == true
+        isPremium = active
+    }
 
-    /// Startet den Kaufprozess für ein bestimmtes Offering-Paket
+    // MARK: - Offerings
+
+    /// Lädt Offerings und cached sie lokal.
+    func loadOfferings() async {
+        do {
+            let o = try await Purchases.shared.offerings()
+            offerings = o
+        } catch {
+            debugPrint("❌ Offerings laden fehlgeschlagen: \(error)")
+        }
+    }
+
+    // MARK: - Kauf / Restore
+
+    /// Startet den Kauf für ein Paket. Gibt `true` zurück, wenn Premium aktiv ist.
+    @discardableResult
     func purchase(package: Package) async -> Bool {
         do {
             let result = try await Purchases.shared.purchase(package: package)
-            if result.customerInfo.entitlements[entitlementID]?.isActive == true {
-                await MainActor.run { self.isPremium = true }
-                return true
+
+            // Falls der User abbricht, wirf kein „Fehler“-Toast/State
+            if result.userCancelled == true {
+                // kein Fehler, nur kein Kauf
+                return isPremium
             }
-        } catch {
-            print("❌ Kauf fehlgeschlagen: \(error.localizedDescription)")
-        }
 
-        return false
-    }
-
-    /// Versucht, Käufe wiederherzustellen (z. B. nach Gerätewechsel oder Reinstallation)
-    func restorePurchases() async -> Bool {
-        do {
-            let info = try await Purchases.shared.restorePurchases()
-            updatePremiumStatus(from: info)
-            return info.entitlements[entitlementID]?.isActive == true
+            applyPremiumStatus(from: result.customerInfo)
+            return isPremium
+        } catch let error as RevenueCat.ErrorCode {
+            // RC-spezifische Fehlerauswertung (optional)
+            debugPrint("❌ Kauf fehlgeschlagen (RC Error): \(error)")
+            return false
         } catch {
-            print("❌ Wiederherstellung fehlgeschlagen: \(error)")
+            debugPrint("❌ Kauf fehlgeschlagen: \(error.localizedDescription)")
             return false
         }
     }
 
-    /// Holt das aktuelle Offering von RevenueCat (z. B. Monats-/Jahresabo)
-    func fetchOfferings() async -> Offerings? {
+    /// Stellt Käufe wieder her. Gibt `true` zurück, wenn Premium aktiv ist.
+    @discardableResult
+    func restorePurchases() async -> Bool {
         do {
-            return try await Purchases.shared.offerings()
+            let info = try await Purchases.shared.restorePurchases()
+            applyPremiumStatus(from: info)
+            return isPremium
         } catch {
-            print("❌ Fehler beim Laden der Offerings: \(error)")
-            return nil
+            debugPrint("❌ Wiederherstellung fehlgeschlagen: \(error)")
+            return false
         }
+    }
+
+    // MARK: - Testing / Preview
+
+    /// Testfunktion: Premium-Status manuell setzen (z. B. für Previews).
+    func setPremiumStatus(_ status: Bool) {
+        isPremium = status
     }
 }
 
 // MARK: - PurchasesDelegate
 
 extension RevenueCatManager: PurchasesDelegate {
-    func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
-        updatePremiumStatus(from: customerInfo)
+    nonisolated func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        Task { @MainActor in
+            self.applyPremiumStatus(from: customerInfo)
+        }
     }
 }
-

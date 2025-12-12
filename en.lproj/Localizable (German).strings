@@ -5,3 +5,24 @@
   Created by Patrick Lanham on 05.10.25.
   
 */
+"description" = "Beschreibung";
+"weakness" = "Schwäche";
+"last_completion" = "Letzter Abschluss";
+"goals" = "Ziele";
+"activity_history" = "Aktivitätsverlauf";
+"time_range_week" = "Woche";
+"time_range_month" = "Monat";
+"days" = "Tage";
+"this_week" = "Diese Woche";
+"this_month" = "Dieser Monat";
+"average" = "Durchschnitt";
+"total" = "Gesamt";
+"xp_received" = "XP erhalten!";
+"hold_button_instruction" = "Halte den Button 2 Sekunden gedrückt";
+"completed_today" = "Heute abgeschlossen";
+"daily_completion" = "Tagesabschluss";
+"delete_focus" = "Fokus löschen";
+"delete" = "Löschen";
+"cancel" = "Abbrechen";
+"edit" = "Bearbeiten";
+"delete_confirmation" = "Bist du sicher, dass du '%@' löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.";

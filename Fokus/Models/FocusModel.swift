@@ -7,14 +7,17 @@
 
 import Foundation
 
-// MARK: - Korrigierte Modelle
+// MARK: - User Progress
+
 struct UserProgressModel {
     var totalXP: Int = 0
     var currentLevel: Int { 1 + (totalXP / 100) }
 }
 
+// MARK: - Todo Model
+
 struct FocusTodoModel: Identifiable, Hashable {
-    let id: UUID // ✅ Explizite ID
+    let id: UUID
     var title: String
     var isCompleted: Bool
     
@@ -25,7 +28,8 @@ struct FocusTodoModel: Identifiable, Hashable {
     }
 }
 
-// Anpassung des Models für Completion-Historie
+// MARK: - Focus Item Model
+
 struct FocusItemModel: Identifiable, Equatable {
     let id: UUID
     var title: String
@@ -34,11 +38,10 @@ struct FocusItemModel: Identifiable, Equatable {
     var todos: [FocusTodoModel]
     var completionDates: [Date]
     
-    // 🔔 Reminder-Handling
-    var reminderDate: Date?            // Wann erinnert werden soll
-    var notificationID: String?        // Für das Löschen der Notification
-    var repeatsDaily: Bool             // Ob täglich erinnert werden soll
-
+    var reminderDate: Date?
+    var notificationID: String?
+    var repeatsDaily: Bool
+    
     init(
         id: UUID = UUID(),
         title: String,
@@ -48,7 +51,7 @@ struct FocusItemModel: Identifiable, Equatable {
         completionDates: [Date] = [],
         reminderDate: Date? = nil,
         notificationID: String? = nil,
-        repeatsDaily: Bool = false      // Default = false
+        repeatsDaily: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -60,13 +63,70 @@ struct FocusItemModel: Identifiable, Equatable {
         self.notificationID = notificationID
         self.repeatsDaily = repeatsDaily
     }
-
+    
     var lastCompletionDate: Date? {
         completionDates.max()
     }
 }
 
+// MARK: - Achievement Rarity (Model)
+
+enum AchievementRarity: String {
+    case common     // Gewöhnlich
+    case rare       // Selten
+    case legendary  // Legendär
+}
+
+// MARK: - Achievement Metric
+
+enum AchievementMetric {
+    case xp
+    case streak
+    case completions
+    case focusCount
+}
+
+// MARK: - Achievement Model
+
+struct Achievement: Identifiable {
+    let id = UUID()
+    
+    /// Titel des Erfolgs (z.B. "Gewohnheitsprofi")
+    let title: String
+    
+    /// Kurze Beschreibung, was der Erfolg aussagt
+    let description: String
+    
+    /// SF Symbol Name für das Icon
+    let icon: String
+    
+    /// Fortschritt 0.0 – 1.0
+    let progress: Double
+    
+    /// Ob der Erfolg bereits freigeschaltet ist
+    let isUnlocked: Bool
+    
+    /// Zielwert (z.B. 75 Abschlüsse)
+    let goalValue: Int
+    
+    /// Aktueller Wert des Users (z.B. aktuelle Abschlüsse)
+    let currentValue: Int
+    
+    /// Seltenheit des Erfolgs
+    let rarity: AchievementRarity
+    
+    /// Kategorie (z.B. "Abschlüsse", "Konstanz", "Erfahrung")
+    let category: String
+    
+    /// Text, der in der Detail-View bei „Anforderung“ steht
+    let requirement: String
+    
+    /// Text, der in der Detail-View bei „Tipp“ steht
+    let tip: String
+}
+
 // MARK: - Statistik-Modelle
+
 struct FocusStatistics {
     var streak: Int = 0
     var totalCompletions: Int = 0
@@ -83,15 +143,3 @@ struct GlobalStatistics {
     var streak: Int = 0
     var achievements: [Achievement] = []
 }
-
-struct Achievement: Identifiable {
-    let id = UUID()
-    let title: String
-    let description: String
-    let icon: String
-    let progress: Double
-    let isUnlocked: Bool
-    let goalValue: Int
-    let currentValue: Int
-}
-

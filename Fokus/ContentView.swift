@@ -24,12 +24,16 @@ struct ContentView: View {
             SettingsView()
                 .tabItem {
                     Label("Einstellungen", systemImage: "gearshape")
+                       
                 }
+                
         }
+        .tint(Palette.accent)
     }
 }
 
 
 #Preview {
     ContentView()
+        .environmentObject(RevenueCatManager())
 }

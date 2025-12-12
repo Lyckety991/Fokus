@@ -7,10 +7,48 @@
 
 import SwiftUI
 
+// MARK: - Rarity Filter Enum (nur für UI-Filter)
+
+enum AchievementRarityFilter: String, CaseIterable {
+    case all = "Alle"
+    case common = "Gewöhnlich"
+    case rare = "Selten"
+    case legendary = "Legendär"
+    
+    var color: Color {
+        switch self {
+        case .all:
+            return Palette.accent
+        case .common:
+            return .gray
+        case .rare:
+            return Palette.accent
+        case .legendary:
+            return Palette.warning
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .all:
+            return "list.bullet"
+        case .common:
+            return "circle.fill"
+        case .rare:
+            return "diamond.fill"
+        case .legendary:
+            return "crown.fill"
+        }
+    }
+}
+
+// MARK: - Achievement View
+
 struct AchievementView: View {
     @ObservedObject var store: FocusStore
     @State private var selectedAchievement: Achievement?
-    @State private var showingAchievementDetail = false
+    @State private var selectedRarity: AchievementRarityFilter = .all
+    @State private var showingFilterSheet = false
     
     // Berechne Statistiken direkt in der View
     private var realStatistics: GlobalStatistics {
@@ -20,110 +58,88 @@ struct AchievementView: View {
         )
     }
     
+    // Gefilterte Achievements basierend auf Seltenheit
+    private var filteredAchievements: [Achievement] {
+        switch selectedRarity {
+        case .all:
+            return realStatistics.achievements
+        case .common:
+            return realStatistics.achievements.filter { $0.rarity == .common }
+        case .rare:
+            return realStatistics.achievements.filter { $0.rarity == .rare }
+        case .legendary:
+            return realStatistics.achievements.filter { $0.rarity == .legendary }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    
-                    
                     achievementsSection
                 }
                 .padding()
             }
+            .scrollIndicators(.hidden)
             .background(Palette.background)
             .navigationTitle("Erfolge")
-            .sheet(isPresented: $showingAchievementDetail) {
-                if let achievement = selectedAchievement {
-                    AchievementDetailSheet(achievement: achievement)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingFilterSheet = true
+                    } label: {
+                        Image(systemName: selectedRarity == .all
+                              ? "line.3.horizontal.decrease.circle"
+                              : "line.3.horizontal.decrease.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(selectedRarity == .all
+                                             ? Palette.textSecondary
+                                             : selectedRarity.color)
+                    }
                 }
+            }
+            .sheet(item: $selectedAchievement) { achievement in
+                AchievementDetailSheet(achievement: achievement)
+            }
+            .sheet(isPresented: $showingFilterSheet) {
+                FilterSheet(
+                    selectedRarity: $selectedRarity,
+                    achievements: realStatistics.achievements
+                )
             }
         }
     }
     
-    // MARK: - Debug Section
-    private var debugSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("🔍 Debug Info:")
-                .font(.headline)
-                .foregroundColor(.red)
-            
-            Text("Achievements: \(realStatistics.achievements.count)")
-                .font(.caption)
-                .foregroundColor(.red)
-            
-            Text("Total XP: \(realStatistics.totalXP)")
-                .font(.caption)
-                .foregroundColor(.red)
-            
-            Text("Streak: \(realStatistics.streak)")
-                .font(.caption)
-                .foregroundColor(.red)
-            
-            Text("Focus Items: \(store.focusItems.count)")
-                .font(.caption)
-                .foregroundColor(.red)
-            
-            Text("UserProgress XP: \(store.userProgress?.totalXP ?? 0)")
-                .font(.caption)
-                .foregroundColor(.red)
-            
-            // Zeige alle Achievements im Debug
-            ForEach(realStatistics.achievements) { achievement in
-                Text("🏆 \(achievement.title): \(Int(achievement.progress * 100))% - \(achievement.isUnlocked ? "✅" : "❌")")
-                    .font(.caption2)
-                    .foregroundColor(.blue)
-            }
-        }
-        .padding()
-        .background(Color.red.opacity(0.1))
-        .cornerRadius(8)
-    }
+    // MARK: - Achievements Section
     
     private var achievementsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Anzahl")
-                    .titleStyle()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(selectedRarity == .all ? "Alle Erfolge" : selectedRarity.rawValue)
+                        .titleStyle()
+                    
+                    if selectedRarity != .all {
+                        Text("Gefiltert nach Seltenheit")
+                            .font(.caption)
+                            .foregroundColor(Palette.textSecondary)
+                    }
+                }
                 
                 Spacer()
                 
-                Text("\(realStatistics.achievements.filter(\.isUnlocked).count)/\(realStatistics.achievements.count)")
+                Text("\(filteredAchievements.filter(\.isUnlocked).count)/\(filteredAchievements.count)")
                     .font(.subheadline)
                     .foregroundColor(Palette.textSecondary)
             }
-
-            if realStatistics.achievements.isEmpty {
-                // Fallback
-                VStack(spacing: 16) {
-                    Image(systemName: "trophy.slash")
-                        .font(.system(size: 50))
-                        .foregroundColor(Palette.textSecondary)
-                    
-                    Text("Keine Erfolge gefunden")
-                        .headlineStyle()
-                    
-                    Text("Erstelle einen Fokus und schließe ihn ab, um Erfolge freizuschalten!")
-                        .bodyTextStyle()
-                        .multilineTextAlignment(.center)
-                    
-                    // Test-Button zum Generieren von Dummy-Daten
-                    Button("Test-Daten hinzufügen") {
-                        addTestData()
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Palette.accent)
-                    .cornerRadius(8)
-                }
-                .padding(40)
-                .cardStyle()
+            
+            if filteredAchievements.isEmpty {
+                emptyStateView
             } else {
                 LazyVStack(spacing: 16) {
-                    ForEach(realStatistics.achievements) { achievement in
+                    ForEach(filteredAchievements) { achievement in
                         AchievementRow(achievement: achievement) {
                             selectedAchievement = achievement
-                            showingAchievementDetail = true
                         }
                     }
                 }
@@ -131,9 +147,54 @@ struct AchievementView: View {
         }
     }
     
+    // MARK: - Empty State
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: selectedRarity == .all ? "trophy.slash" : "sparkles")
+                .font(.system(size: 50))
+                .foregroundColor(Palette.textSecondary)
+            
+            Text(selectedRarity == .all
+                 ? "Keine Erfolge gefunden"
+                 : "Keine \(selectedRarity.rawValue.lowercased())en Erfolge")
+                .headlineStyle()
+            
+            Text(selectedRarity == .all
+                 ? "Erstelle einen Fokus und schließe ihn ab, um Erfolge freizuschalten!"
+                 : "Arbeite weiter an deinen Zielen, um \(selectedRarity.rawValue.lowercased())e Erfolge zu erreichen!")
+                .bodyTextStyle()
+                .multilineTextAlignment(.center)
+            
+            if selectedRarity == .all {
+                Button("Test-Daten hinzufügen") {
+                    addTestData()
+                }
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .padding()
+                .background(Palette.accent)
+                .cornerRadius(8)
+            } else {
+                Button("Alle anzeigen") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        selectedRarity = .all
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(Palette.accent)
+                .padding()
+                .background(Palette.card)
+                .cornerRadius(8)
+            }
+        }
+        .padding(40)
+        .cardStyle()
+    }
+    
     // MARK: - Test-Daten hinzufügen
+    
     private func addTestData() {
-        // Füge Test-FocusItems hinzu
         let testFocus1 = FocusItemModel(
             title: "Meditation",
             description: "Tägliche Meditation",
@@ -156,33 +217,194 @@ struct AchievementView: View {
         
         store.focusItems.append(contentsOf: [testFocus1, testFocus2])
         
-        // Füge Test-XP hinzu
         if store.userProgress == nil {
             store.userProgress = UserProgressModel(totalXP: 150)
         } else {
-            store.userProgress = UserProgressModel(totalXP: (store.userProgress?.totalXP ?? 0) + 150)
+            store.userProgress = UserProgressModel(
+                totalXP: (store.userProgress?.totalXP ?? 0) + 150
+            )
         }
     }
 }
 
-// MARK: - Achievement Row (jetzt tappable)
+// MARK: - Filter Sheet
+
+struct FilterSheet: View {
+    @Binding var selectedRarity: AchievementRarityFilter
+    let achievements: [Achievement]
+    @Environment(\.dismiss) private var dismiss
+    
+    private func getCountForRarity(_ rarity: AchievementRarityFilter) -> Int {
+        switch rarity {
+        case .all:
+            return achievements.count
+        case .common:
+            return achievements.filter { $0.rarity == .common }.count
+        case .rare:
+            return achievements.filter { $0.rarity == .rare }.count
+        case .legendary:
+            return achievements.filter { $0.rarity == .legendary }.count
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 16) {
+                    HStack {
+                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(Palette.accent)
+                        
+                        Text("Filter nach Seltenheit")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Palette.textPrimary)
+                        
+                        Spacer()
+                    }
+                    
+                    Text("Wähle eine Seltenheitsstufe aus, um die Erfolge zu filtern")
+                        .font(.subheadline)
+                        .foregroundColor(Palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 8)
+                
+                // Filter Options
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(AchievementRarityFilter.allCases, id: \.self) { rarity in
+                            FilterOption(
+                                rarity: rarity,
+                                isSelected: selectedRarity == rarity,
+                                count: getCountForRarity(rarity)
+                            ) {
+                                selectedRarity = rarity
+                                dismiss()
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                }
+            }
+            .background(Palette.background)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fertig") {
+                        dismiss()
+                    }
+                    .foregroundColor(Palette.accent)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Filter Option
+
+struct FilterOption: View {
+    let rarity: AchievementRarityFilter
+    let isSelected: Bool
+    let count: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? rarity.color : Palette.card)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Circle()
+                                .stroke(rarity.color.opacity(0.3), lineWidth: 1)
+                        )
+                    
+                    Image(systemName: rarity.icon)
+                        .font(.title3)
+                        .foregroundColor(isSelected ? .white : rarity.color)
+                }
+                
+                // Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(rarity.rawValue)
+                        .font(.headline)
+                        .foregroundColor(Palette.textPrimary)
+                    
+                    Text("\(count) Erfolge")
+                        .font(.subheadline)
+                        .foregroundColor(Palette.textSecondary)
+                }
+                
+                Spacer()
+                
+                // Selection Indicator
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(rarity.color)
+                } else {
+                    Image(systemName: "circle")
+                        .font(.title2)
+                        .foregroundColor(Palette.textSecondary.opacity(0.3))
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? rarity.color.opacity(0.1) : Palette.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? rarity.color.opacity(0.3) : Color.clear, lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+}
+
+// MARK: - Achievement Row
+
 struct AchievementRow: View {
     let achievement: Achievement
     let onTap: () -> Void
     
+    private var rarityColor: Color {
+        switch achievement.rarity {
+        case .common:
+            return .gray
+        case .rare:
+            return Palette.accent
+        case .legendary:
+            return Palette.warning
+        }
+    }
+    
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
-                // Achievement Icon
+                // Icon
                 achievementIcon
                 
-                // Achievement Info
+                // Info
                 achievementInfo
                 
                 Spacer()
                 
                 // Status + Arrow
-                VStack {
+                VStack(spacing: 8) {
                     statusIndicator
                     
                     Image(systemName: "chevron.right")
@@ -199,12 +421,12 @@ struct AchievementRow: View {
     private var achievementIcon: some View {
         ZStack {
             Circle()
-                .fill(achievement.isUnlocked ? Palette.completed : Palette.card)
+                .fill(achievement.isUnlocked ? rarityColor : Palette.card)
                 .frame(width: 50, height: 50)
                 .overlay(
                     Circle()
                         .stroke(
-                            achievement.isUnlocked ? Palette.completed : Color.gray.opacity(0.3),
+                            achievement.isUnlocked ? rarityColor : Color.gray.opacity(0.3),
                             lineWidth: 2
                         )
                 )
@@ -220,20 +442,19 @@ struct AchievementRow: View {
             Text(achievement.title)
                 .font(.headline)
                 .foregroundColor(Palette.textPrimary)
-
+            
             Text(achievement.description)
                 .font(.subheadline)
                 .foregroundColor(Palette.textSecondary)
-
-            // Progress Bar
+            
             if !achievement.isUnlocked {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(Int(achievement.progress * 100))% abgeschlossen")
                         .font(.caption)
                         .foregroundColor(Palette.textSecondary)
-
+                    
                     ProgressView(value: achievement.progress)
-                        .progressViewStyle(LinearProgressViewStyle(tint: Palette.accent))
+                        .progressViewStyle(LinearProgressViewStyle(tint: rarityColor))
                         .frame(height: 4)
                 }
             }
@@ -241,102 +462,40 @@ struct AchievementRow: View {
     }
     
     private var statusIndicator: some View {
-        if achievement.isUnlocked {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title2)
-                .foregroundStyle(Palette.completed) as? Text
-        } else {
-            Text("\(Int(achievement.progress * 100))%")
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(Palette.accent)
+        Group {
+            if achievement.isUnlocked {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(Palette.completed)
+            } else {
+                Text("\(Int(achievement.progress * 100))%")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(rarityColor)
+            }
         }
     }
 }
 
 // MARK: - Achievement Detail Sheet
+
 struct AchievementDetailSheet: View {
     let achievement: Achievement
     @Environment(\.dismiss) private var dismiss
     
-    // Mapping für detaillierte Infos
-    private var detailInfo: (requirement: String, tip: String, category: String) {
-        switch achievement.title {
-        case "Neuling":
-            return (
-                requirement: "Erreiche 100 XP durch das Abschließen von Fokussen",
-                tip: "Jeder abgeschlossene Fokus gibt dir 25 XP. Du brauchst also 4 Abschlüsse!",
-                category: "Erfahrung"
-            )
-        case "Erfahren":
-            return (
-                requirement: "Sammle insgesamt 500 XP",
-                tip: "Das entspricht etwa 20 abgeschlossenen Fokussen. Bleib dran!",
-                category: "Erfahrung"
-            )
-        case "Meister":
-            return (
-                requirement: "Erreiche 1000 XP - ein wahrer Meilenstein!",
-                tip: "Nur die Diszipliniertesten schaffen diesen Status. Das sind 40 Fokus-Abschlüsse!",
-                category: "Erfahrung"
-            )
-        case "Durchstarter":
-            return (
-                requirement: "Schließe an 3 aufeinanderfolgenden Tagen mindestens einen Fokus ab",
-                tip: "Der erste Schritt zur Gewohnheitsbildung. Starte noch heute!",
-                category: "Konstanz"
-            )
-        case "Konsequent":
-            return (
-                requirement: "Halte eine 7-Tage-Streak aufrecht",
-                tip: "Nach einer Woche wird es zur Routine. Du schaffst das!",
-                category: "Konstanz"
-            )
-        case "Unaufhaltsam":
-            return (
-                requirement: "Erstelle eine unglaubliche 30-Tage-Streak",
-                tip: "Nur 5% aller Nutzer schaffen das. Werde eine Inspiration für andere!",
-                category: "Konstanz"
-            )
-        case "Erster Schritt":
-            return (
-                requirement: "Schließe insgesamt 10 Fokusse ab",
-                tip: "Jeder Weg beginnt mit einem ersten Schritt. Du bist auf dem richtigen Weg!",
-                category: "Abschlüsse"
-            )
-        case "Vollprofi":
-            return (
-                requirement: "Erreiche 50 Fokus-Abschlüsse",
-                tip: "Das zeigt wahre Hingabe. Du hast bewiesen, dass du es ernst meinst!",
-                category: "Abschlüsse"
-            )
-        case "Multitasker":
-            return (
-                requirement: "Erstelle und verwalte 5 aktive Fokusse gleichzeitig",
-                tip: "Balance ist der Schlüssel. Übernimm dich nicht, aber bleib vielseitig!",
-                category: "Vielfalt"
-            )
-        default:
-            return (
-                requirement: "Unbekannte Anforderung",
-                tip: "Bleib dran und entdecke neue Erfolge!",
-                category: "Allgemein"
-            )
+    private var rarityName: String {
+        switch achievement.rarity {
+        case .common:    return "Gewöhnlich"
+        case .rare:      return "Selten"
+        case .legendary: return "Legendär"
         }
     }
     
-    private var rarityInfo: (name: String, color: Color) {
-        switch achievement.title {
-        case "Neuling", "Erster Schritt", "Durchstarter":
-            return ("Gewöhnlich", Color.gray)
-        case "Erfahren", "Konsequent", "Multitasker":
-            return ("Selten", Palette.accent)
-        case "Vollprofi":
-            return ("Episch", Palette.purple)
-        case "Meister", "Unaufhaltsam":
-            return ("Legendär", Palette.warning)
-        default:
-            return ("Gewöhnlich", Color.gray)
+    private var rarityColor: Color {
+        switch achievement.rarity {
+        case .common:    return .gray
+        case .rare:      return Palette.accent
+        case .legendary: return Palette.warning
         }
     }
     
@@ -344,23 +503,12 @@ struct AchievementDetailSheet: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Achievement Icon (groß)
                     achievementIcon
-                    
-                    // Title & Category
                     titleSection
-                    
-                    // Progress Section
                     progressSection
-                    
-                    // Requirement Section
                     requirementSection
-                    
-                    // Tip Section
                     tipSection
-                    
-                    // Reward Section
-                    rewardSection
+                    // rewardSection (falls du XP-Belohnungen nutzen willst)
                     
                     Spacer()
                 }
@@ -383,14 +531,14 @@ struct AchievementDetailSheet: View {
     private var achievementIcon: some View {
         ZStack {
             Circle()
-                .fill(achievement.isUnlocked ? rarityInfo.color : Palette.card)
+                .fill(achievement.isUnlocked ? rarityColor : Palette.card)
                 .frame(width: 120, height: 120)
                 .overlay(
                     Circle()
-                        .stroke(rarityInfo.color, lineWidth: 3)
+                        .stroke(rarityColor, lineWidth: 3)
                 )
                 .shadow(
-                    color: rarityInfo.color.opacity(0.3),
+                    color: rarityColor.opacity(0.3),
                     radius: achievement.isUnlocked ? 15 : 5
                 )
             
@@ -409,16 +557,16 @@ struct AchievementDetailSheet: View {
                 .multilineTextAlignment(.center)
             
             HStack(spacing: 12) {
-                Text(rarityInfo.name)
+                Text(rarityName)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
-                    .background(rarityInfo.color)
+                    .background(rarityColor)
                     .clipShape(Capsule())
                 
-                Text(detailInfo.category)
+                Text(achievement.category)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(Palette.textSecondary)
@@ -439,11 +587,11 @@ struct AchievementDetailSheet: View {
                 Text("\(Int(achievement.progress * 100))%")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(rarityInfo.color)
+                    .foregroundColor(rarityColor)
             }
             
             ProgressView(value: achievement.progress)
-                .progressViewStyle(LinearProgressViewStyle(tint: rarityInfo.color))
+                .progressViewStyle(LinearProgressViewStyle(tint: rarityColor))
                 .frame(height: 8)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             
@@ -455,6 +603,13 @@ struct AchievementDetailSheet: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(Palette.completed)
+                    Spacer()
+                }
+            } else {
+                HStack {
+                    Text("\(achievement.currentValue)/\(achievement.goalValue)")
+                        .font(.subheadline)
+                        .foregroundColor(Palette.textSecondary)
                     Spacer()
                 }
             }
@@ -473,7 +628,7 @@ struct AchievementDetailSheet: View {
                 Spacer()
             }
             
-            Text(detailInfo.requirement)
+            Text(achievement.requirement)
                 .bodyTextStyle()
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -491,7 +646,7 @@ struct AchievementDetailSheet: View {
                 Spacer()
             }
             
-            Text(detailInfo.tip)
+            Text(achievement.tip)
                 .bodyTextStyle()
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -499,6 +654,7 @@ struct AchievementDetailSheet: View {
         .cardStyle()
     }
     
+    // Optional: falls du zusätzliche XP-Belohnungen anzeigen willst
     private var rewardSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -517,6 +673,13 @@ struct AchievementDetailSheet: View {
                     .fontWeight(.bold)
                     .foregroundColor(Palette.textPrimary)
                 Spacer()
+                
+                if achievement.isUnlocked {
+                    Text("Erhalten! ✅")
+                        .font(.subheadline)
+                        .foregroundColor(Palette.completed)
+                        .fontWeight(.semibold)
+                }
             }
         }
         .padding()
@@ -525,10 +688,10 @@ struct AchievementDetailSheet: View {
 }
 
 // MARK: - Previews
+
 #Preview("Mit echten Daten") {
     let store = FocusStore()
     
-    // Test FocusItems erstellen (mit korrektem Initializer)
     let focus1 = FocusItemModel(
         title: "Meditation",
         description: "Tägliche Meditation",
@@ -555,31 +718,6 @@ struct AchievementDetailSheet: View {
 
 #Preview("Leere Daten") {
     let store = FocusStore()
-    return NavigationView {
-        AchievementView(store: store)
-    }
-}
-
-#Preview("Viele Erfolge") {
-    let store = FocusStore()
-    
-    // Erstelle viele Test-Completions für verschiedene Achievements
-    var completionDates: [Date] = []
-    for i in 0..<15 {
-        completionDates.append(Date().addingTimeInterval(-Double(i * 86400)))
-    }
-    
-    let superFocus = FocusItemModel(
-        title: "Super Fokus",
-        description: "Test mit vielen Abschlüssen",
-        weakness: "Test",
-        todos: [],
-        completionDates: completionDates
-    )
-    
-    store.focusItems = [superFocus]
-    store.userProgress = UserProgressModel(totalXP: 1200) // Viel XP für alle Achievements
-    
     return NavigationView {
         AchievementView(store: store)
     }

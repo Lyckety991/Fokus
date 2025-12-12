@@ -5,3 +5,25 @@
   Created by Patrick Lanham on 05.10.25.
   
 */
+
+"description" = "Description";
+"weakness" = "Weakness";
+"last_completion" = "Last Completion";
+"goals" = "Goals";
+"activity_history" = "Activity History";
+"time_range_week" = "Week";
+"time_range_month" = "Month";
+"days" = "days";
+"this_week" = "This Week";
+"this_month" = "This Month";
+"average" = "Average";
+"total" = "Total";
+"xp_received" = "XP received!";
+"hold_button_instruction" = "Hold the button for 2 seconds";
+"completed_today" = "Completed today";
+"daily_completion" = "Daily completion";
+"delete_focus" = "Delete Focus";
+"delete" = "Delete";
+"cancel" = "Cancel";
+"edit" = "Edit";
+"delete_confirmation" = "Are you sure you want to delete '%@'? This action cannot be undone.";

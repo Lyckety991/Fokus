@@ -7,17 +7,72 @@
 
 import SwiftUI
 
+/**
+ * FocusStatisticsView - Detaillierte Statistik-Ansicht für Focus-Items
+ *
+ * Diese View präsentiert umfassende Statistiken und Insights zu einem spezifischen Focus-Item.
+ * Sie bietet verschiedene Visualisierungen und Metriken zur Analyse der Nutzer-Performance.
+ *
+ * Hauptfunktionalitäten:
+ * - Hero Stats Section mit prominenter Streak-Anzeige
+ * - Interaktiver Timeframe-Selector für verschiedene Zeiträume
+ * - Animierte Progress Cards mit visuellen Fortschrittsbalken
+ * - Activity Heatmap zur Visualisierung der täglichen Aktivität
+ * - Insights Section mit personalisierten Trend-Analysen
+ *
+ * Design Features:
+ * - Scroll-basierte Navigation für große Datenmengen
+ * - Animierte UI-Elemente für verbesserte User Experience
+ * - Responsive Layout mit adaptiven Grid-Systemen
+ * - Consistent Card-Design für visuelle Kohärenz
+ */
 struct FocusStatisticsView: View {
+    // MARK: - Properties
+    
+    /// Statistik-Daten für das Focus-Item
     let statistics: FocusStatistics
+    
+    // MARK: - UI State Properties
+    
+    /// Aktuell ausgewählter Zeitrahmen für Statistik-Anzeige
     @State private var selectedTimeframe: StatTimeframe = .week
+    
+    /// Steuert die Animation der Fortschrittsbalken
     @State private var animateProgress = false
     
+    // MARK: - Supporting Types
+    
+    /**
+     * Zeitrahmen-Enum für Statistik-Gruppierung
+     *
+     * Definiert verfügbare Zeiträume für die Statistik-Analyse:
+     * - Woche: Letzte 7 Tage
+     * - Monat: Letzte 30 Tage  
+     * - Jahr: Letzte 365 Tage
+     */
     enum StatTimeframe: String, CaseIterable {
         case week = "Woche"
         case month = "Monat"
         case year = "Jahr"
     }
+    // MARK: - Main Body View
     
+    /**
+     * Haupt-Body der FocusStatisticsView
+     *
+     * Implementiert eine ScrollView mit vertikal gestapelten Sektionen:
+     * - Hero Stats mit prominenten Metriken
+     * - Timeframe Selector für Zeitraum-Auswahl
+     * - Progress Cards mit animierten Fortschrittsbalken
+     * - Activity Heatmap für tägliche Aktivitätsvisualisierung
+     * - Insights Section mit personalisierten Trend-Analysen
+     *
+     * Features:
+     * - Smooth Scroll-Performance durch optimierte Layouts
+     * - Einheitliches Spacing für visuelle Konsistenz
+     * - Navigation Bar mit Large Title Display Mode
+     * - Automatische Progress-Animation beim View-Erscheinen
+     */
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -47,7 +102,20 @@ struct FocusStatisticsView: View {
         }
     }
     
-    // MARK: - Hero Stats Section
+    // MARK: - Hero Statistics Section
+    
+    /**
+     * Hero Stats Section Component
+     *
+     * Präsentiert die wichtigsten Metriken prominent im oberen Bereich:
+     * - Streak Card als zentrale, hervorgehobene Komponente
+     * - Quick Stats Grid mit kompakten Statistik-Karten
+     *
+     * Design Features:
+     * - Hierarchische Informationsdarstellung (Streak prominenter als andere Stats)
+     * - Konsistente Farbgebung für verschiedene Metrik-Typen
+     * - Responsive Grid-Layout für optimale Platznutzung
+     */
     private var heroStatsSection: some View {
         VStack(spacing: 20) {
             // Streak Card (Prominent)
@@ -72,6 +140,21 @@ struct FocusStatisticsView: View {
         }
     }
     
+    /**
+     * Streak Card Component
+     *
+     * Zentrale Komponente zur Hervorhebung der aktuellen Streak-Performance:
+     * - Prominente Darstellung mit Flame-Icon
+     * - Große, gut lesbare Zahl für den aktuellen Streak-Wert
+     * - Visuelle Streak-Visualisierung mit Punkt-Indikatoren
+     * - Spezielle Behandlung für längere Streaks (7+ Tage)
+     *
+     * Design Features:
+     * - Gradient-Hintergrund für visuelle Attraktivität
+     * - Border-Overlay für zusätzliche Definition
+     * - Responsive Layout für verschiedene Streak-Längen
+     * - Internationalisierung für Singular/Plural (Tag/Tage)
+     */
     private var streakCard: some View {
         VStack(spacing: 12) {
             HStack {
@@ -130,6 +213,23 @@ struct FocusStatisticsView: View {
         )
     }
     
+    /**
+     * Quick Stat Card Component
+     *
+     * Kompakte Statistik-Karte für sekundäre Metriken
+     *
+     * - Parameters:
+     *   - title: Beschriftung der Metrik
+     *   - value: Anzuzeigende numerische Wert
+     *   - icon: SF Symbol für visuelle Identifikation
+     *   - color: Themen-Farbe für Icon und Hervorhebungen
+     *
+     * Design Features:
+     * - Vertikale Anordnung für kompakte Darstellung
+     * - Einheitliche Größe durch maxWidth: .infinity
+     * - Konsistente Typographie-Hierarchie
+     * - Farbkodierung für verschiedene Metrik-Typen
+     */
     private func quickStatCard(title: String, value: String, icon: String, color: Color) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
@@ -150,7 +250,21 @@ struct FocusStatisticsView: View {
         .cardStyle()
     }
     
-    // MARK: - Timeframe Selector
+    // MARK: - Timeframe Selection
+    
+    /**
+     * Timeframe Selector Section Component
+     *
+     * Ermöglicht Nutzern die Auswahl verschiedener Zeiträume für Statistik-Analyse:
+     * - Segmented Control-ähnliches Design
+     * - Smooth Animationen zwischen Zuständen
+     * - Responsive Button-Styling basierend auf Auswahl-Status
+     *
+     * Technische Features:
+     * - State-Management für selectedTimeframe
+     * - Automatische Layoutanpassung für verschiedene Bildschirmgrößen
+     * - Accessibility-Support durch eindeutige Button-Beschriftungen
+     */
     private var timeframeSelectorSection: some View {
         HStack {
             Text("Zeitraum")
@@ -181,7 +295,21 @@ struct FocusStatisticsView: View {
         }
     }
     
-    // MARK: - Progress Cards Section
+    // MARK: - Progress Visualization
+    
+    /**
+     * Progress Cards Section Component
+     *
+     * Zeigt detaillierte Fortschritts-Metriken in ansprechenden Karten:
+     * - Wöchentliche und monatliche Completion Rates
+     * - Animierte Fortschrittsbalken mit Gradient-Fills
+     * - Kontextuelle Progress-Indikatoren und Beschreibungen
+     *
+     * Features:
+     * - Staggered Animations für visuellen Impact
+     * - Responsive Progress-Beschreibungen basierend auf Performance
+     * - Farbkodierung für verschiedene Leistungsniveaus
+     */
     private var progressCardsSection: some View {
         VStack(spacing: 16) {
             progressCard(
@@ -200,6 +328,23 @@ struct FocusStatisticsView: View {
         }
     }
     
+    /**
+     * Individual Progress Card Component
+     *
+     * Einzelne Fortschritts-Karte mit umfassenden Visualisierungen
+     *
+     * - Parameters:
+     *   - title: Beschriftung der Progress-Metrik
+     *   - progress: Fortschrittswert (0.0 - 1.0)
+     *   - color: Themen-Farbe für Fortschrittsbalken und Akzente
+     *   - timeframe: Zugehöriger Zeitrahmen für Kontext
+     *
+     * Features:
+     * - Animierte Fortschrittsbalken mit GeometryReader für präzise Dimensionierung
+     * - 5-Punkt Progress-Indikator-System
+     * - Kontextuelle Fortschritts-Beschreibungen
+     * - Gradient-basierte Fortschrittsbalken für visuellen Appeal
+     */
     private func progressCard(title: String, progress: Double, color: Color, timeframe: StatTimeframe) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -252,6 +397,17 @@ struct FocusStatisticsView: View {
         .cardStyle()
     }
     
+    /**
+     * Progress Indicator Component
+     *
+     * 5-Punkt-Indikator-System für visuelles Fortschritts-Feedback
+     *
+     * - Parameters:
+     *   - progress: Fortschrittswert (0.0 - 1.0)
+     *   - color: Basis-Farbe für gefüllte Indikatoren
+     *
+     * Jeder Punkt repräsentiert 20% Fortschritt (0.2 Intervalle)
+     */
     private func progressIndicator(progress: Double, color: Color) -> some View {
         HStack(spacing: 4) {
             ForEach(0..<5) { index in
@@ -262,6 +418,22 @@ struct FocusStatisticsView: View {
         }
     }
     
+    /**
+     * Progress Description Generator
+     *
+     * Generiert kontextuelle, motivierende Beschreibungen basierend auf Fortschritts-Level
+     *
+     * - Parameter progress: Fortschrittswert (0.0 - 1.0)
+     * - Returns: Localized Beschreibungstext entsprechend der Performance
+     *
+     * Progress-Kategorien:
+     * - 0-20%: Anfangsphase
+     * - 20-40%: Aufbauphase
+     * - 40-60%: Mittlerer Fortschritt
+     * - 60-80%: Gute Performance
+     * - 80-100%: Exzellente Performance
+     * - 100%+: Überragende Performance
+     */
     private func progressDescription(for progress: Double) -> String {
         switch progress {
         case 0...0.2: return "Gerade erst gestartet"
@@ -273,7 +445,21 @@ struct FocusStatisticsView: View {
         }
     }
     
-    // MARK: - Activity Heatmap Section
+    // MARK: - Activity Visualization
+    
+    /**
+     * Activity Heatmap Section Component
+     *
+     * Visualisiert die tägliche Aktivität in einem kalenderähnlichen Heatmap-Format:
+     * - Integration der ModernCalendarHeatmap für detaillierte Tagesansicht
+     * - Konsistente Card-basierte Präsentation
+     * - Klare Section-Überschrift für Kontext
+     *
+     * Design Features:
+     * - Einheitliches Spacing mit anderen Sektionen
+     * - Card-Styling für visuelle Konsistenz
+     * - Responsive Layout für verschiedene Bildschirmgrößen
+     */
     private var activityHeatmapSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Aktivitätsverlauf")
@@ -286,7 +472,21 @@ struct FocusStatisticsView: View {
         .cardStyle()
     }
     
-    // MARK: - Insights Section
+    // MARK: - Insights & Analytics
+    
+    /**
+     * Insights Section Component
+     *
+     * Präsentiert personalisierte Analyse-Insights und Trend-Informationen:
+     * - Trend-Analyse basierend auf wöchentlichen vs. monatlichen Raten
+     * - Ziel-Fortschritt mit aktueller Wochenperformance
+     * - Aktivitätsmuster-Analyse für optimale Nutzungszeiten
+     *
+     * Features:
+     * - Automatische Trend-Erkennung mit Vergleichsalgorithmen
+     * - Farbkodierte Icons für verschiedene Insight-Kategorien
+     * - Strukturierte Informationshierarchie mit Titel/Wert-Paaren
+     */
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Insights")
@@ -320,6 +520,22 @@ struct FocusStatisticsView: View {
         .cardStyle()
     }
     
+    /**
+     * Individual Insight Row Component
+     *
+     * Einzelne Insight-Zeile mit Icon, Titel und Wert
+     *
+     * - Parameters:
+     *   - icon: SF Symbol für visuelle Kategorisierung
+     *   - title: Insight-Kategorie Beschreibung
+     *   - value: Spezifischer Insight-Wert oder -Beschreibung
+     *   - color: Themen-Farbe für Icon-Hervorhebung
+     *
+     * Design Features:
+     * - Konsistente Icon-Größe und -Platzierung
+     * - Hierarchische Typographie (Titel prominent, Wert sekundär)
+     * - Flexible Layout-Struktur für verschiedene Content-Längen
+     */
     private func insightRow(icon: String, title: String, value: String, color: Color) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -342,6 +558,18 @@ struct FocusStatisticsView: View {
         }
     }
     
+    /**
+     * Trend Description Generator
+     *
+     * Analysiert Trends basierend auf wöchentlichen vs. monatlichen Completion Rates
+     *
+     * - Returns: Localized Trend-Beschreibung basierend auf Datenvergleich
+     *
+     * Trend-Kategorien:
+     * - Verbesserung: Wöchentliche Rate > Monatliche Rate
+     * - Rückgang: Wöchentliche Rate < Monatliche Rate  
+     * - Stabil: Wöchentliche Rate ≈ Monatliche Rate
+     */
     private var trendDescription: String {
         let weeklyRate = statistics.weeklyCompletionRate
         let monthlyRate = statistics.monthlyCompletionRate
@@ -356,18 +584,65 @@ struct FocusStatisticsView: View {
     }
 }
 
+// MARK: - Calendar Heatmap Component
+
+/**
+ * ModernCalendarHeatmap - Erweiterte Kalender-Heatmap-Visualisierung
+ *
+ * Implementiert eine GitHub-ähnliche Heatmap für die Visualisierung täglicher Aktivitäten:
+ * - 28-Tage-Ansicht (4 Wochen) für übersichtliche Darstellung
+ * - Wochentag-Header für zeitliche Orientierung
+ * - LazyVGrid für performante Darstellung großer Datensätze
+ * - Interaktive Legende mit Intensitäts-Indikatoren
+ *
+ * Technische Features:
+ * - Flexible Spalten-Konfiguration für responsive Layouts
+ * - Datum-basierte Completion-Überprüfung
+ * - Farbintensitäts-Algorithmus für visuelle Differenzierung
+ * - Automatische Rückwärts-Chronologie für intuitive Zeitachse
+ */
 // MARK: - Modern Calendar Heatmap
 struct ModernCalendarHeatmap: View {
+    // MARK: - Properties
+    
+    /// Array der Completion-Daten für Heatmap-Visualisierung
     let completionDates: [Date]
+    
+    /// Grid-Konfiguration für 7-Spalten-Layout (Wochentage)
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
     
-    // Letzten 4 Wochen (28 Tage)
+    // MARK: - Computed Properties
+    
+    /**
+     * Berechnet die letzten 28 Tage für Heatmap-Darstellung
+     * 
+     * - Returns: Array von Dates in chronologischer Reihenfolge (älteste zuerst)
+     *
+     * Verwendet Calendar.current für lokalisierte Datums-Berechnungen
+     * und reversed() für intuitive zeitliche Darstellung.
+     */
     private var last28Days: [Date] {
         let calendar = Calendar.current
         return (0..<28).compactMap { offset in
             calendar.date(byAdding: .day, value: -offset, to: Date())
         }.reversed()
     }
+    
+    // MARK: - Main Body
+    
+    /**
+     * Haupt-Body der Heatmap-Komponente
+     *
+     * Struktur:
+     * - Wochentag-Header für zeitliche Orientierung
+     * - LazyVGrid mit CalendarDayView-Elementen für jeden Tag
+     * - Intensitäts-Legende für Farbkodierung-Erklärung
+     *
+     * Design Features:
+     * - Konsistente Abstände zwischen Elementen
+     * - Responsive Layout für verschiedene Bildschirmgrößen
+     * - Accessibility-freundliche Beschriftungen
+     */
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -415,10 +690,31 @@ struct ModernCalendarHeatmap: View {
         }
     }
     
+    // MARK: - Helper Methods
+    
+    /**
+     * Überprüft ob an einem bestimmten Datum ein Completion stattgefunden hat
+     *
+     * - Parameter date: Zu überprüfendes Datum
+     * - Returns: true wenn Completion am angegebenen Datum existiert
+     *
+     * Verwendet Calendar.isDate(_:inSameDayAs:) für präzise Tages-Vergleiche
+     * unabhängig von Uhrzeiten.
+     */
     private func isCompleted(on date: Date) -> Bool {
         completionDates.contains { Calendar.current.isDate($0, inSameDayAs: date) }
     }
     
+    /**
+     * Bestimmt die Heatmap-Farbe basierend auf Aktivitäts-Intensität
+     *
+     * - Parameter intensity: Intensitätslevel (0-4)
+     * - Returns: Entsprechende Color für die Intensitätsstufe
+     *
+     * Farbkodierung:
+     * - 0: Keine Aktivität (Card-Farbe)
+     * - 1-4: Steigende Intensität mit Opacity-Variationen des Completed-Farbschemas
+     */
     private func heatmapColor(for intensity: Int) -> Color {
         switch intensity {
         case 0: return Palette.card
@@ -431,11 +727,46 @@ struct ModernCalendarHeatmap: View {
     }
 }
 
+// MARK: - Calendar Day Component
+
+/**
+ * CalendarDayView - Einzelne Tages-Zelle für Heatmap
+ *
+ * Repräsentiert einen einzelnen Tag in der Heatmap-Visualisierung:
+ * - Completion-Status-basierte Farbgebung
+ * - Spezielle Hervorhebung für heutiges Datum
+ * - Responsive Skalierung für aktuelle Tages-Betonung
+ *
+ * Design Features:
+ * - Rounded Rectangle-Design für moderne Ästhetik
+ * - Conditional Styling basierend auf verschiedenen Zuständen
+ * - Smooth Animations für State-Übergänge
+ * - Border-Overlay für heute-Hervorhebung
+ */
 // MARK: - Calendar Day View
 struct CalendarDayView: View {
+    // MARK: - Properties
+    
+    /// Datum für diese Tages-Zelle
     let date: Date
+    
+    /// Completion-Status für dieses Datum
     let isCompleted: Bool
+    
+    /// Kennzeichnet ob dies das heutige Datum ist
     let isToday: Bool
+    
+    // MARK: - Body
+    
+    /**
+     * Tages-Zellen-Body mit conditional Styling
+     *
+     * Features:
+     * - Completion-basierte Hintergrundfarbe
+     * - Datum-Overlay mit kontextueller Formatierung
+     * - Heute-Hervorhebung mit Accent-Border und Skalierung
+     * - Smooth Animationen für State-Übergänge
+     */
     
     var body: some View {
         RoundedRectangle(cornerRadius: 4)
@@ -463,7 +794,17 @@ struct CalendarDayView: View {
     }
 }
 
-// MARK: - Preview
+// MARK: - SwiftUI Preview Configuration
+
+/**
+ * SwiftUI Preview für FocusStatisticsView
+ *
+ * Konfiguriert Preview mit:
+ * - NavigationView für korrekte Navigation Bar Darstellung
+ * - Mock FocusStatistics mit repräsentativen Daten
+ * - Verschiedene Completion-Daten für Heatmap-Visualisierung
+ * - Realistische Streak- und Completion-Werte für Design-Validierung
+ */
 #Preview {
     NavigationView {
         FocusStatisticsView(

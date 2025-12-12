@@ -8,10 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		E888419B2E2B84C300352117 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = E888419A2E2B84C300352117 /* RevenueCat */; };
+		E891BDD12E92D293004CD456 /* Localizable (English).strings in Resources */ = {isa = PBXBuildFile; fileRef = E891BDCF2E92D293004CD456 /* Localizable (English).strings */; };
+		E891BDD42E92D2A5004CD456 /* Localizable (German).strings in Resources */ = {isa = PBXBuildFile; fileRef = E891BDD22E92D2A5004CD456 /* Localizable (German).strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		E890BD902E1BEDD1007FC040 /* Fokus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fokus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E891BDD02E92D293004CD456 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = "en.lproj/Localizable (English).strings"; sourceTree = "<group>"; };
+		E891BDD32E92D2A5004CD456 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = "en.lproj/Localizable (German).strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -57,6 +61,8 @@
 		E890BD872E1BEDD1007FC040 = {
 			isa = PBXGroup;
 			children = (
+				E891BDD22E92D2A5004CD456 /* Localizable (German).strings */,
+				E891BDCF2E92D293004CD456 /* Localizable (English).strings */,
 				E890BD922E1BEDD1007FC040 /* Fokus */,
 				E88841992E2B84C300352117 /* Frameworks */,
 				E890BD912E1BEDD1007FC040 /* Products */,
@@ -118,6 +124,7 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
 			);
 			mainGroup = E890BD872E1BEDD1007FC040;
 			minimizedProjectReferenceProxies = 1;
@@ -139,6 +146,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E891BDD42E92D2A5004CD456 /* Localizable (German).strings in Resources */,
+				E891BDD12E92D293004CD456 /* Localizable (English).strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -153,6 +162,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		E891BDCF2E92D293004CD456 /* Localizable (English).strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E891BDD02E92D293004CD456 /* en */,
+			);
+			name = "Localizable (English).strings";
+			sourceTree = "<group>";
+		};
+		E891BDD22E92D2A5004CD456 /* Localizable (German).strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E891BDD32E92D2A5004CD456 /* en */,
+			);
+			name = "Localizable (German).strings";
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		E890BD992E1BEDD3007FC040 /* Debug */ = {
@@ -215,6 +243,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -272,6 +301,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
